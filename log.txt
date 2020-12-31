@@ -1,0 +1,63 @@
+Hierarchy Z Buffer Simple
+20201220:
+todo:
+	定义Vertex,Mesh,Model数据结构。
+	实现线面相交，面面相交函数。
+	实现Model。
+20201222:
+	参考github上，使用glut setPixel render model
+
+
+
+Point -> Edge -> Surface -> Model
+
+import model --> initial pyramid --> 
+using pyramid travel all surface rejecting some of surface and update z_buffer object data -->
+using z_buffer object data and glDraPixels function draw scene.
+continue kuqi.
+
+20201225:
+	更改使用glut库。
+20201226:
+	更改使用自己写的import model.
+	在Model类中的Surface值存储点的索引index。
+	todo:重写线面的角交点。
+
+	需要明确pyramid只是用来检测polygon是否需要绘制。
+20201230:
+todo:
+	整理代码，将SCR_WIDTH、SCR_HEIGHT和model path作为参数输入，不必每次都需要重新build.[done]
+	增加vn参数的支持，包括颜色计算和去除负向的面.[done]
+	重写(去网上查资料)点在多边形内的判断函数，减少多余的水平线。[fixed]
+	抗锯齿(antialiasing?ssaa,msaa?).[x]
+	(修改globl中判断点是否在线上的阈值， 减少了一部分锯齿)
+	开始构建空间八叉树Octree.
+	可以在加载model时使用priority_queue加载，render时先绘制前面的面.
+done:
+	自己想的判断点是否位于多边形内部的射线法太粗糙了，一点也不Robust
+	查了网上给出的方法是：
+		以射线y=p.y，x>=p.x作为判断依据
+		0),线判断是否存在于多边形的边上(直接接受)，是否显然不与多边形的边P1P2相交(p.y>max(p1.y,p2.y)或者p.y<min(p1.y,p2.y)直接拒绝)
+		1),如果p1.y==p2.y则忽略
+		2),如果交点ret.y==min(p1.y, p2.y)则忽略
+		3),如果p1.x==p2.x且p.x小于p1.x(p.y在[p1.y,p2.y]之内)那么一定有交点cnt++;
+		4),其他情况，根据计算公式计算交点，如果交点合法cnt++
+
+		最后根据合法交点的奇偶性，判断点是否在多边形内。
+log:
+	因为会对model进行平移，所以会降低pyramid的效率。 考虑不进行平移，只进行缩放。[x]
+	都放到第一象限如何？[x] 此想法不可取，不管放到哪一个象限，都不能很明显的提高pyramid的效率，只有针对特定的model，例如楼房多次次格子间
+	时，pryamid的效率才能最大化。
+	
+	需要重写缩放和平移函数。[fixed]
+	
+	旋转变换当z为负值时会出错。[fixed]
+20201231:
+todo:
+	重写Point类,double数据类型改为float.
+	如果使用QT显示界面，可以设置几个输入参数:
+		model path, camera position, light position, 是否启用normal(如果不启用则使用面的顶点计算法向)
+		同时可以显示计算的过程以及耗时.
+
+log:
+	1.0类似的小数会被默认认为是double类型，必须使用1.0f显式表明是float类型。

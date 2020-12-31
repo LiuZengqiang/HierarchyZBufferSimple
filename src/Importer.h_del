@@ -1,0 +1,183 @@
+#pragma once
+// 不支持多行数据
+// 去除多余空格
+#include"Point.h"
+#include<float.h>
+#include<iostream>
+#include<vector>
+#include<string>
+#include<fstream>
+#include<sstream>
+
+
+struct Face
+{
+	std::vector<int> indices;
+	Face() {
+		indices.clear();
+	}
+	void debug() {
+		std::cout << "size:" << indices.size() << std::endl;
+		for (unsigned int i = 0; i < indices.size(); i++) {
+			std::cout << indices[i] << " ";
+		}
+		std::cout << std::endl;
+	}
+};
+
+class Importer {
+public:
+	Importer(std::string path) {
+		path_ = path;
+		valid_ = false;
+	}
+	Importer() {
+		path_ = "";
+		valid_ = false;
+	}
+
+	void readFile(std::string path) {
+		path_ = path;
+		loadModel();
+	}
+
+	void debug() {
+		
+		std::cout << "-----All points:-----" << std::endl;
+		std::cout << "points size:" << points_.size() << std::endl;
+		/*for (unsigned int i = 0; i < points_.size(); i++) {
+			points_[i].debug();
+		}*/
+		std::cout << "-----End all points:-----" << std::endl;
+
+		std::cout << "-----All faces:-----" << std::endl;
+		// TODO:: process debug import model
+		std::cout << "face size:" << faces_.size() << std::endl;
+		/*for (unsigned int i = 0; i < faces_.size(); i++) {
+			faces_[i].debug();
+		}*/
+		std::cout << "-----End all faces-----" << std::endl;
+	}
+
+	bool isValid() {
+		return valid_;
+	}
+
+	std::vector<Point > points_;
+	std::vector<Face > faces_;
+private:
+	void loadModel() {
+		std::ifstream model_file;
+		model_file.open(path_);
+		if (!model_file.good()) {
+			std::cout << "ERROR::Importer::loadModel open file:\'" << path_ << "\' failed." << std::endl;
+			valid_ = false;
+			return;
+		}
+		else {
+			std::string line_data;
+			int line_id = 0;
+			while (std::getline(model_file, line_data)) {
+
+				line_id++;
+				unsigned int index = 0;
+				// remove ' '
+				std::string next_word = getNextStr(line_data,index);
+				
+				if (next_word=="") {
+					continue;
+				}
+
+				if (next_word[0] == '#') {	// pass comment
+					continue;
+				}
+				else if (next_word == "v") {	// v
+					Point p;
+					
+					std::vector<double> pos;
+
+					while ((next_word = getNextStr(line_data, index))!="") {
+						
+						double val = std::atof(next_word.c_str());
+						pos.push_back(val);
+					}
+					if (pos.size()!=3) {
+						std::cout << "ERROR::Importer loadModel. The point positions parameter is error. Get " <<pos.size() <<" parameters."<<std::endl;
+						valid_ = false;
+						return;
+					}
+					p.x = pos[0];
+					p.y = pos[1];
+					p.z = pos[2];
+					
+					points_.push_back(p);
+				}
+				else if (next_word=="f") {	// f
+
+					Face f;
+
+					std::vector<int> indices;
+					
+					while ((next_word=getNextStr(line_data, index))!="") {
+						
+						int j = 0;
+						while (j<next_word.length()&& next_word[j]!='/') {
+							j++;
+						}
+						int index = std::atoi(next_word.substr(0, j).c_str());
+						indices.push_back(index);
+					}
+
+					if (indices.size() < 3) {
+						std::cout << "ERROR::Importer::loadModel file error indices too little at" << line_id<<" whare indices is "<<indices.size() << std::endl;
+						valid_ = false;
+						return;
+					}
+					// 处理负数index
+					for (unsigned int i = 0; i < indices.size(); i++) {
+						if (indices[i] < 0) {
+							indices[i] = (int)points_.size() - indices[i];
+						}
+					}
+
+					for (unsigned int i = 0; i < indices.size(); i++) {
+						f.indices.push_back(indices[i]-1);
+					}
+					
+					//std::cout << "add face:";
+					/*for (unsigned int i = 0; i < f.indices.size(); i++) {
+						std::cout << f.indices[i] << " ";
+					}*/
+					//std::cout << std::endl;
+					faces_.push_back(f);
+				}
+				else {		// other, no means
+					//std::cout << "Ignore "<<line_id<<" line." << std::endl;
+				}
+			}
+		}
+
+		valid_ = true;
+	};
+	std::string getNextStr(std::string& str, unsigned int& index) {
+		unsigned int j = index;
+		while(j<str.length()&&str[j]==' '){
+			j++;
+		}
+
+		if (j>=str.length()) {
+			return "";
+		}
+		unsigned int k = j;
+		while (k<str.length()&&str[k]!=' ') {
+			k++;
+		}
+		index = k;
+	
+		std::string ret = str.substr(j, k - j);
+		return ret;
+	}
+	
+	bool valid_;
+	std::string path_;
+};
