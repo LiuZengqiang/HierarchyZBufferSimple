@@ -8,19 +8,23 @@
 #define Pi 3.14159265359
 
 namespace global {
-
+	
+	// float 类型是否相等
 	bool floatEqual(const float& val_1, const float& val_2) {
 		return std::abs(val_1 - val_2) < Epsilon;
 	}
-
+	
+	// double 类型是否相等
 	bool doubleEqual(const double& val_1, const double& val_2) {
 		return std::abs(val_1 - val_2) < Epsilon;
 	}
+	
+	// vec3 类型是否相等
 	bool vec3Equal(const glm::vec3& val_1, const glm::vec3& val_2) {
 		return floatEqual(val_1.x, val_2.x) && floatEqual(val_1.y, val_2.y) && floatEqual(val_1.z, val_2.z);
 	}
 
-	// 点是否
+	// 像素点是否在线段上
 	bool pointOnSegmentLine(const glm::ivec2& point, const glm::ivec2 seg_point_1, glm::ivec2 seg_point_2) {
 
 		// 点是否是端点
@@ -55,20 +59,16 @@ namespace global {
 		float h = S / glm::length(s_p_2 - s_p_1);
 		return h < Epsilon;
 	}
-
+	
+	// 像素点向x正方向发出的射线是否和线段相交，相交返回交点，不相交返回ivec2(INT_MIN, INT_MIN)
 	glm::ivec2 pointIntersectLine(const glm::ivec2& point, const glm::ivec2& seg_point_1, const glm::ivec2& seg_point_2) {
 
 		glm::ivec2 ret(INT_MIN, INT_MIN);
-
-		if (point.x == 0 && point.y == 359) {
-			std::cout << "ret:(" << ret.x << "," << ret.y << ")" << std::endl;
-		}
 
 		// 如果点在线上
 		if (pointOnSegmentLine(point, seg_point_1, seg_point_2)) {
 			ret.x = point.x;
 			ret.y = point.y;
-
 			return ret;
 		}
 
@@ -112,7 +112,6 @@ namespace global {
 		glm::vec2 s_p_1((float)(seg_point_1.x) + 0.5f, (float)(seg_point_1.y) + 0.5f);
 		glm::vec2 s_p_2((float)(seg_point_2.x) + 0.5f, (float)(seg_point_2.y) + 0.5f);
 
-		//TODO:求交点
 		float ret_x = (s_p_2.x - s_p_1.x) / (s_p_2.y - s_p_1.y) * (p.y - s_p_1.y) + s_p_1.x;
 
 		if (ret_x < p.x) {
@@ -123,8 +122,7 @@ namespace global {
 		return ret;
 	}
 
-
-	// 点是否在多边形上(里)
+	// 像素点是否在多边形上(里)
 	bool pointInPolygon(const glm::ivec2& point, const std::vector<glm::ivec2 >& po_points) {
 
 		if (po_points.size() < 3) {
@@ -237,16 +235,7 @@ namespace global {
 		return cnt % 2;
 	}
 
-	// get intersection of one line and a triangle
-
-	/// <summary>
-	/// 
-	/// </summary>
-	/// <param name="origin"></param>
-	/// <param name="a"></param>
-	/// <param name="b"></param>
-	/// <param name="c"></param>
-	/// <returns></returns>
+	// 坐标点z负方向发出的射线与多边形的交点，返回交点的z值
 	float interSectZ(glm::vec3 origin, glm::vec3 a, glm::vec3 b, glm::vec3 c) {
 
 		glm::vec3 E1 = b - a;

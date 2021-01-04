@@ -3,9 +3,6 @@
 // 实数坐标 (-1,1)-(-1, 1)
 // 像素坐标 (0, scr_width)-(0, scr_height)
 // 函数参数顺序 (scr_width,scr_heigh)
-
-
-
 #include"GL\freeglut.h"
 #include"GL\glut.h"
 #include"Scene.h"
@@ -38,14 +35,18 @@ int main(int argc, char ** argv) {
 	
 
 	// 参数窗口 wdth,height,model path
-	Scene scene(SCR_WIDTH, SCR_HEIGHT, "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\house.obj");
+	Scene scene(SCR_WIDTH, SCR_HEIGHT, "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj");
+	
 	scene.setCameraPosition(cameraPos);
+	
 	scene.setLightPosition(lightPos);
 	
 	scene.init();
 	
 	scene.beginRender();
+
 	z_buffer_data = scene.getZBufferData();
+	
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(SCR_WIDTH, SCR_HEIGHT);

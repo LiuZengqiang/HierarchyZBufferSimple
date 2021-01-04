@@ -15,24 +15,20 @@ public:
 	Scene(unsigned int scr_width, unsigned int scr_height, std::string model_path) {
 		scr_height_ = scr_height;
 		scr_width_ = scr_width;
-
 		model_path_ = model_path;
 	};
 	~Scene() {};
 
 	void init() {
 
+		std::cout << "1. init Scene." << std::endl;
+
 		// 1. 初始化model pyramid
 		model_.initCameraLightPos(camera_pos_, light_pos_);
 
+		std::cout << "1.1 load model." << std::endl;
 		model_.loadModel(model_path_);
 
-		
-
-		pyramid_.build(scr_width_, scr_height_);
-
-		// 2. 初始化Scene\pyramid\model
-		std::cout << "1.1 Initial z_buffer_data_." << std::endl;
 		z_buffer_data_ = (GLubyte*)malloc((size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		if (z_buffer_data_ == nullptr) {
 			std::cout << "ERROR::Scene::init Malloc memory to z_buffer_data_ fail." << std::endl;
@@ -42,120 +38,111 @@ public:
 			memset(z_buffer_data_, 0, (size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		}
 
-		std::cout << "1.2 Initial model." << std::endl;
-		
-		
-		
-		//model_.debugSurface(99);
-		////model_.debugPoints("before rotate");
-		model_.rotateModel(camera_pos_);
-		model_.initColorRemoveNeg();
-		//model_.debugSurface(99);
+		//model_.rotateModel(camera_pos_);
+		//model_.initColorRemoveNeg();
 
-		////model_.debugPoints("after rotate");
 		model_.scaleModel();
-		////model_.debugPoints();
 
-		
-		//model_.removeNegativeNormalSurface();
-
-
+		pyramid_.build(scr_width_, scr_height_);
 		SCENE_INIT = true;
 	}
 
 	// 开始比较深度绘制
 	void beginRender() {
-		
+
 		if (!SCENE_INIT) {
 			std::cout << "ERROR::Scene::beginRender Scene do not initialed, please call scene.init() ." << std::endl;
 			return;
 		}
 
 		int not_render_face_cnt = 0;
-		int negative_normal_face_cnt = 0;
+
 		int mean_pixel_cnt = 0;
 
 		for (unsigned int i = 0; i < model_.sur_faces_.size(); i++) {
-			// 去除法向为负的面
-			if (model_.flag_[i] == false) {
-				//std::cout << "HINT::Scene::beginRender Surface " << i << " not render for the normal vector is negative." << std::endl;
-				negative_normal_face_cnt++;
-				continue;
-			}
-			else {
-
-				std::pair<float, float> min_max_x = model_.getMinMaxX(i);
-				std::pair<float, float> min_max_y = model_.getMinMaxY(i);
-				float max_z = model_.getMaxZ(i);
-
-				// 得到对应的像素位置
-				int p_x_l = (int)std::round((1 + min_max_x.first) / 2.0f * (scr_width_ - 1));
-				int p_x_r = (int)std::round((1 + min_max_x.second) / 2.0f * (scr_width_ - 1));
-				int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
-				int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
 
 
-				if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, i)) {
-					// update Pyramid 和 z_buffer_data_;
-					// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
+			std::pair<float, float> min_max_x = model_.getMinMaxX(i);
+			std::pair<float, float> min_max_y = model_.getMinMaxY(i);
+			float max_z = model_.getMaxZ(i);
 
-					//std::cout << "HINT::Scene::beginRender Render surface " << i << " ." << std::endl;
+			// 得到对应的像素位置
+			int p_x_l = (int)std::round((1 + min_max_x.first) / 2.0f * (scr_width_ - 1));
+			int p_x_r = (int)std::round((1 + min_max_x.second) / 2.0f * (scr_width_ - 1));
+			int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
+			int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
 
-					std::vector<glm::ivec2> po_points;
 
-					for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
-						int p_index = model_.sur_faces_[i].indices[j];
-						int temp_x = std::round((1 + model_.points_[p_index].position.x) / 2.0 * (scr_width_ - 1));
-						int temp_y = std::round((1 + model_.points_[p_index].position.y) / 2.0 * (scr_height_ - 1));
-						glm::ivec2 temp_p(temp_x, temp_y);
-						po_points.push_back(temp_p);
-					}
-					for (unsigned int x = p_x_l; x <= p_x_r; x++) {
-						for (unsigned int y = p_y_b; y <= p_y_t; y++) {
-							glm::ivec2 point(x, y);
+			if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, i)) {
+				// update Pyramid 和 z_buffer_data_;
+				// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
+				std::vector<glm::ivec2> po_points;
 
-							// 如果(x,y)在多边形里面
-							if (global::pointInPolygon(point, po_points)) {
+				for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
+					int p_index = model_.sur_faces_[i].indices[j];
+					int temp_x = std::round((1 + model_.points_[p_index].position.x) / 2.0 * (scr_width_ - 1));
+					int temp_y = std::round((1 + model_.points_[p_index].position.y) / 2.0 * (scr_height_ - 1));
+					glm::ivec2 temp_p(temp_x, temp_y);
+					po_points.push_back(temp_p);
+				}
 
-								float f_x = ((float)x) / (scr_width_ - 1) * 2.0 - 1.0;
-								float f_y = ((float)y) / (scr_height_ - 1) * 2.0 - 1.0;
-								glm::vec3 ori(f_x, f_y, 0.0);
-								int p_index = model_.sur_faces_[i].indices[0];
-								glm::vec3 a(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-								p_index = model_.sur_faces_[i].indices[1];
-								glm::vec3 b(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-								p_index = model_.sur_faces_[i].indices[2];
-								glm::vec3 c(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
 
-								float z = global::interSectZ(ori, a, b, c);
-								float pry_z = pyramid_.getZ(x, y);
+				// TODO::使用扫描线算法?
 
-								if (global::floatEqual(z, pry_z)) {
-									this->meanSetPixel(x, y, model_.color_[i]);
-									mean_pixel_cnt++;
-								}
-								else if (z > pyramid_.getZ(x, y)) {
-									//this->setPixel(x, y, model_.color_[i]);
-									setPixelAntialiasing(x, y, model_.color_[i]);
-									pyramid_.updatePyramid(x, y, z);
-								}
+				//for (unsigned int y = p_y_b; y <= p_y_t; y++) {
+				//	//
+				//	if (z>pyramid_z) {
+				//		绘制
+				//	}
+				//	else {
+				//		不绘制
+				//	}
+				//}
+
+				for (unsigned int x = p_x_l; x <= p_x_r; x++) {
+					for (unsigned int y = p_y_b; y <= p_y_t; y++) {
+						glm::ivec2 point(x, y);
+
+						// 如果(x,y)在多边形里面
+						if (global::pointInPolygon(point, po_points)) {
+
+							float f_x = ((float)x) / (scr_width_ - 1) * 2.0 - 1.0;
+							float f_y = ((float)y) / (scr_height_ - 1) * 2.0 - 1.0;
+							glm::vec3 ori(f_x, f_y, 0.0);
+							int p_index = model_.sur_faces_[i].indices[0];
+							glm::vec3 a(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+							p_index = model_.sur_faces_[i].indices[1];
+							glm::vec3 b(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+							p_index = model_.sur_faces_[i].indices[2];
+							glm::vec3 c(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+
+							float z = global::interSectZ(ori, a, b, c);
+							float pry_z = pyramid_.getZ(x, y);
+
+							if (global::floatEqual(z, pry_z)) {
+								this->meanSetPixel(x, y, model_.color_[i]);
+								mean_pixel_cnt++;
 							}
-							else {
-
+							else if (z > pyramid_.getZ(x, y)) {
+								//this->setPixel(x, y, model_.color_[i]);
+								setPixelAntialiasing(x, y, model_.color_[i]);
+								pyramid_.updatePyramid(x, y, z);
 							}
+						}
+						else {
+
 						}
 					}
 				}
-				else {
-					//std::cout << "HINT::Scene::beginRender Not render surface " << i << " ." << std::endl;
-					not_render_face_cnt++;
-				}
+			}
+			else {
+				//std::cout << "HINT::Scene::beginRender Not render surface " << i << " ." << std::endl;
+				not_render_face_cnt++;
 			}
 		}
-
 		//showDepth();
+		std::cout << "The number of surfaces is " << model_.sur_faces_.size() << std::endl;
 		std::cout << "Do not rendered surface number is :" << not_render_face_cnt << std::endl;
-		std::cout << "Negative normal surface number is :" << negative_normal_face_cnt << std::endl;
 		std::cout << "Mean pixel number is :" << mean_pixel_cnt << std::endl;
 	};
 

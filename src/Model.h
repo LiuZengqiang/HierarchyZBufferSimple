@@ -64,7 +64,7 @@ public:
 
 		double cos_beta = glm::dot(glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)), camera_pos_);
 
-		double sin_bate = std::sqrt(1.0 - cos_beta * cos_beta < 0.0 ? 0.0 : 1.0 - cos_beta * cos_beta) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
+		double sin_beta = std::sqrt(1.0 - cos_beta * cos_beta < 0.0 ? 0.0 : 1.0 - cos_beta * cos_beta) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
 
 
 		// 绕Y轴旋转(-alpha)
@@ -93,8 +93,8 @@ public:
 		for (unsigned int i = 0; i < points_.size(); i++) {
 			float z = points_[i].position.z;
 			float y = points_[i].position.y;
-			points_[i].position.z = (float)(cos_beta * z + sin_bate * y * -1.0);
-			points_[i].position.y = (float)(sin_bate * z + cos_beta * y);
+			points_[i].position.z = (float)(cos_beta * z + sin_beta * y * -1.0);
+			points_[i].position.y = (float)(sin_beta * z + cos_beta * y);
 			if (global::floatEqual(points_[i].position.y, 0.0f)) {
 				points_[i].position.y = 0.0f;
 			}
@@ -106,8 +106,8 @@ public:
 		for (unsigned int i = 0; i < normals_.size(); i++) {
 			float z = normals_[i].z;
 			float y = normals_[i].y;
-			normals_[i].z = (float)(cos_beta * z + sin_bate * y * -1.0);
-			normals_[i].y = (float)(sin_bate * z + cos_beta * y);
+			normals_[i].z = (float)(cos_beta * z + sin_beta * y * -1.0);
+			normals_[i].y = (float)(sin_beta * z + cos_beta * y);
 			if (global::floatEqual(normals_[i].z, 0.0f)) {
 				normals_[i].z = 0.0f;
 			}
@@ -123,8 +123,8 @@ public:
 		light_pos_.x = (float)(sin_alpha * z + cos_alpha * x);
 		z = light_pos_.z;
 		float y = light_pos_.y;
-		light_pos_.z = (float)(cos_beta * z + sin_bate * y * -1.0f);
-		light_pos_.y = (float)(sin_bate * z + cos_beta * y);
+		light_pos_.z = (float)(cos_beta * z + sin_beta * y * -1.0f);
+		light_pos_.y = (float)(sin_beta * z + cos_beta * y);
 	};
 
 	// 也放缩也平移
@@ -164,108 +164,123 @@ public:
 		}
 	};
 
-	void removeNegativeNormalSurface() {
+	//void removeNegativeNormalSurface() {
 
-		std::vector<bool> f(sur_faces_.size(), true);
+	//	std::vector<bool> f(sur_faces_.size(), true);
 
-		/*flag_.assign(f.begin(), f.end());
-		return;*/
+	//	/*flag_.assign(f.begin(), f.end());
+	//	return;*/
 
-		for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-			glm::vec3 normal;
-			if (sur_faces_[i].nor_indices.empty()) {
-				glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
-				glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
-				glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
+	//	for (unsigned int i = 0; i < sur_faces_.size(); i++) {
+	//		glm::vec3 normal;
+	//		if (sur_faces_[i].nor_indices.empty()) {
+	//			glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
+	//			glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
+	//			glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
 
-				glm::vec3 v1 = p2 - p1;
-				glm::vec3 v2 = p3 - p2;
+	//			glm::vec3 v1 = p2 - p1;
+	//			glm::vec3 v2 = p3 - p2;
 
-				normal = glm::normalize(glm::cross(v1, v2));
-			}
-			else {
+	//			normal = glm::normalize(glm::cross(v1, v2));
+	//		}
+	//		else {
 
-				glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
-				for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
-					temp_nor += normals_[sur_faces_[i].nor_indices[j]];
-				}
-				temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
-				temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
-				temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
-				normal = glm::normalize(temp_nor);
-			}
+	//			glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
+	//			for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
+	//				temp_nor += normals_[sur_faces_[i].nor_indices[j]];
+	//			}
+	//			temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
+	//			temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
+	//			temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
+	//			normal = glm::normalize(temp_nor);
+	//		}
 
-			if (normal.z < Epsilon) {
-				f[i] = false;
-				/*std::cout << "remove surface:" << i << std::endl;
-				std::cout << "\t";
-				for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
-					unsigned int index = sur_faces_[i].indices[j];
-					std::cout << "(" << points_[index].x << "," << points_[index].y << "," << points_[index].z << ") ";
-				}
-				std::cout << std::endl;*/
-			}
-		}
+	//		if (normal.z < Epsilon) {
+	//			f[i] = false;
+	//			/*std::cout << "remove surface:" << i << std::endl;
+	//			std::cout << "\t";
+	//			for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
+	//				unsigned int index = sur_faces_[i].indices[j];
+	//				std::cout << "(" << points_[index].x << "," << points_[index].y << "," << points_[index].z << ") ";
+	//			}
+	//			std::cout << std::endl;*/
+	//		}
+	//	}
 
-		flag_.assign(f.begin(), f.end());
+	//	flag_.assign(f.begin(), f.end());
 
-	}
+	//}
 
-	void initColorRemoveNeg() {
+	//void initColorRemoveNeg() {
 
-		std::vector<bool> f(sur_faces_.size(), true);
-		std::vector<double> c(sur_faces_.size(), 0.0);
+	//	std::vector<bool> f(sur_faces_.size(), true);
+	//	std::vector<double> c(sur_faces_.size(), 0.0);
 
-		for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-			glm::vec3 normal;
-			if (sur_faces_[i].nor_indices.empty()) {
-				glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
-				glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
-				glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
+	//	for (unsigned int i = 0; i < sur_faces_.size(); i++) {
+	//		glm::vec3 normal;
+	//		if (sur_faces_[i].nor_indices.empty()) {
+	//			glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
+	//			glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
+	//			glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
 
-				glm::vec3 v1 = p2 - p1;
-				glm::vec3 v2 = p3 - p2;
-				normal = glm::normalize(glm::cross(v1, v2));
-			}
-			else {
-				glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
-				for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
-					temp_nor += normals_[sur_faces_[i].nor_indices[j]];
-				}
-				temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
-				temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
-				temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
+	//			glm::vec3 v1 = p2 - p1;
+	//			glm::vec3 v2 = p3 - p2;
+	//			normal = glm::normalize(glm::cross(v1, v2));
+	//		}
+	//		else {
+	//			glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
+	//			for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
+	//				temp_nor += normals_[sur_faces_[i].nor_indices[j]];
+	//			}
+	//			temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
+	//			temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
+	//			temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
 
-				normal = glm::normalize(temp_nor);
-			}
+	//			normal = glm::normalize(temp_nor);
+	//		}
 
-			// negative surface
-			if (normal.z < 0.0) {
-				f[i] = false;
-			}
-			else {
-				double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
-				if (cos_alpha < 0.0) {
-					// diffuse add ambient
-					c[i] = 0.0 + 0.1;
-				}
-				else {
-					// diffuse add ambient
-					c[i] = std::min(std::pow(cos_alpha, 2) + 0.1, 1.0);
-				}
-			}
-			//std::cout << "color " << c[i] << std::endl;
-		}
+	//		// negative surface
+	//		if (normal.z < 0.0) {
+	//			f[i] = false;
+	//		}
+	//		else {
+	//			double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
+	//			if (cos_alpha < 0.0) {
+	//				// diffuse add ambient
+	//				c[i] = 0.0 + 0.1;
+	//			}
+	//			else {
+	//				// diffuse add ambient
+	//				c[i] = std::min(std::pow(cos_alpha, 2) + 0.1, 1.0);
+	//			}
+	//		}
+	//		//std::cout << "color " << c[i] << std::endl;
+	//	}
 
-		color_.assign(c.begin(), c.end());
-		flag_.assign(f.begin(), f.end());
-	}
+	//	color_.assign(c.begin(), c.end());
+	//	flag_.assign(f.begin(), f.end());
+	//}
 
 	void initCameraLightPos(glm::vec3 camera_pos, glm::vec3 light_pos) {
 		camera_pos_ = camera_pos;
 		camera_pos_ = glm::normalize(camera_pos_);
 		light_pos_ = light_pos;
 		light_pos_ = glm::normalize(light_pos_);
+		cos_alpha_ = glm::dot(glm::vec3(0.0, 0.0, 1.0), glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)));
+		sin_alpha_ = std::sqrt(1.0 - cos_alpha_ * cos_alpha_ < 0.0 ? 0.0 : 1.0 - cos_alpha_ * cos_alpha_) * (camera_pos_.x >= 0 ? -1.0 : 1.0);
+
+		cos_beta_ = glm::dot(glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)), camera_pos_);
+		sin_beta_ = std::sqrt(1.0 - cos_beta_ * cos_beta_ < 0.0 ? 0.0 : 1.0 - cos_beta_ * cos_beta_) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
+
+		// 旋转light_pos
+		float z = light_pos_.z;
+		float x = light_pos_.x;
+		light_pos_.z = (float)(cos_alpha_ * z + sin_alpha_ * x * -1.0f);
+		light_pos_.x = (float)(sin_alpha_ * z + cos_alpha_ * x);
+		z = light_pos_.z;
+		float y = light_pos_.y;
+		light_pos_.z = (float)(cos_beta_ * z + sin_beta_ * y * -1.0f);
+		light_pos_.y = (float)(sin_beta_ * z + cos_beta_ * y);
 	};
 
 	void setDefaultColor() {
@@ -282,10 +297,10 @@ public:
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
 		}
-		if (flag_[index] == false) {
+		/*if (flag_[index] == false) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
-		}
+		}*/
 		float ret_max_x = -FLT_MAX;
 		float ret_min_x = FLT_MAX;
 		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
@@ -299,10 +314,10 @@ public:
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
 		}
-		if (flag_[index] == false) {
+		/*if (flag_[index] == false) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
-		}
+		}*/
 		float ret_max_y = -FLT_MAX;
 		float ret_min_y = FLT_MAX;
 		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
@@ -384,20 +399,20 @@ public:
 		std::cout << "-----End all points:-----" << std::endl;
 	}
 
-	void debugFlag() {
-		std::cout << "----- All invalid surfaces -----:" << std::endl;
-		for (unsigned int i = 0; i < flag_.size(); i++) {
-			if (flag_[i] == false) {
-				std::cout << i << ": ";
-				for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
-					std::cout << "(" << points_[sur_faces_[i].indices[j]].position.x << "," << points_[sur_faces_[i].indices[j]].position.y << "," << points_[sur_faces_[i].indices[j]].position.z << ") ";
-				}
-				std::cout << std::endl;
-			}
-		}
-		std::cout << "-----End all invalid surfaces:-----" << std::endl;
+	//void debugFlag() {
+	//	std::cout << "----- All invalid surfaces -----:" << std::endl;
+	//	for (unsigned int i = 0; i < flag_.size(); i++) {
+	//		if (flag_[i] == false) {
+	//			std::cout << i << ": ";
+	//			for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
+	//				std::cout << "(" << points_[sur_faces_[i].indices[j]].position.x << "," << points_[sur_faces_[i].indices[j]].position.y << "," << points_[sur_faces_[i].indices[j]].position.z << ") ";
+	//			}
+	//			std::cout << std::endl;
+	//		}
+	//	}
+	//	std::cout << "-----End all invalid surfaces:-----" << std::endl;
 
-	}
+	//}
 
 	// 根据漫反射，获取指定表面 的颜色
 	std::vector<GLubyte> getColor(unsigned int index) {
@@ -409,7 +424,7 @@ public:
 	std::vector<Surface > sur_faces_;	//面
 	std::vector<glm::vec3 > normals_;	//法向
 
-	std::vector<bool > flag_;
+	//std::vector<bool > flag_;
 	std::vector<float> color_;
 
 private:
@@ -457,16 +472,31 @@ private:
 						std::cout << "ERROR::Importer loadModel. The point positions parameter is error. Get " << pos.size() << " parameters." << std::endl;
 						return;
 					}
-					p.position.x = pos[0];
+					/*p.position.x = pos[0];
 					p.position.y = pos[1];
-					p.position.z = pos[2];
+					p.position.z = pos[2];*/
 
+					p.position.x = (float)(sin_alpha_ * pos[2] + cos_alpha_ * pos[0]);
+					p.position.z = (float)(cos_alpha_ * pos[2] + sin_alpha_ * pos[0] * (-1.0));
+					pos[2] = p.position.z;
+
+					p.position.z = (float)(cos_beta_ * pos[2] + sin_beta_ * pos[1] * (-1.0));
+					p.position.y = (float)(sin_beta_ * pos[2] + cos_beta_ * pos[1]);
+
+					if (global::floatEqual(p.position.x, 0.0f)) {
+						p.position.x = 0.0f;
+					}
+					if (global::floatEqual(p.position.y, 0.0f)) {
+						p.position.y = 0.0f;
+					}
+					if (global::floatEqual(p.position.z, 0.0f)) {
+						p.position.z = 0.0f;
+					}
 					points_.push_back(p);
 				}
 				else if (next_word == "f") {	// f
 
 					Surface f;
-
 					// position indices
 					std::vector<int> indices;
 
@@ -531,7 +561,49 @@ private:
 					for (unsigned int i = 0; i < nor_indices.size(); i++) {
 						f.nor_indices.push_back(nor_indices[i] - 1);
 					}
-					sur_faces_.push_back(f);
+
+					glm::vec3 normal(0.0f, 0.0f, 0.0f);
+					if (f.nor_indices.empty()) {
+						glm::vec3 p1(points_[f.indices[0]].position.x, points_[f.indices[0]].position.y, points_[f.indices[0]].position.z);
+						glm::vec3 p2(points_[f.indices[1]].position.x, points_[f.indices[1]].position.y, points_[f.indices[1]].position.z);
+						glm::vec3 p3(points_[f.indices[2]].position.x, points_[f.indices[2]].position.y, points_[f.indices[2]].position.z);
+
+						glm::vec3 v1 = p2 - p1;
+						glm::vec3 v2 = p3 - p2;
+						normal = glm::normalize(glm::cross(v1, v2));
+					}
+					else {
+						glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
+						for (unsigned int j = 0; j < f.nor_indices.size(); j++) {
+							temp_nor += normals_[f.nor_indices[j]];
+						}
+						temp_nor.x = temp_nor.x / f.nor_indices.size();
+						temp_nor.y = temp_nor.y / f.nor_indices.size();
+						temp_nor.z = temp_nor.z / f.nor_indices.size();
+
+						normal = glm::normalize(temp_nor);
+					}
+					
+					float c = 0.0f;
+					// negative surface
+					if (normal.z < 0.0) {
+						;
+					}
+					else {
+						
+						double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
+						if (cos_alpha < 0.0) {
+							// diffuse add ambient
+							c = 0.0 + 0.1;
+						}
+						else {
+							// diffuse add ambient
+							c = std::min(std::pow(cos_alpha, 2) + 0.1, 1.0);
+						}
+						sur_faces_.push_back(f);
+						color_.push_back(c);
+					}
+					
 				}
 				else if (next_word == "vn") {
 
@@ -546,7 +618,26 @@ private:
 						return;
 					}
 
-					glm::vec3 n(nor[0], nor[1], nor[2]);
+					//glm::vec3 n(nor[0], nor[1], nor[2]);
+
+					glm::vec3 n(0.0f, 0.0f, 0.0f);
+
+					n.x = (float)(sin_alpha_ * nor[2] + cos_alpha_ * nor[0]);
+					n.z = (float)(cos_alpha_ * nor[2] + sin_alpha_ * nor[0] * (-1.0));
+					nor[2] = n.z;
+
+					n.z = (float)(cos_beta_ * nor[2] + sin_beta_ * nor[1] * (-1.0));
+					n.y = (float)(sin_beta_ * nor[2] + cos_beta_ * nor[1]);
+
+					if (global::floatEqual(n.x, 0.0f)) {
+						n.x = 0.0f;
+					}
+					if (global::floatEqual(n.y, 0.0f)) {
+						n.y = 0.0f;
+					}
+					if (global::floatEqual(n.z, 0.0f)) {
+						n.z = 0.0f;
+					}
 
 					normals_.push_back(n);
 
@@ -596,7 +687,6 @@ private:
 		}
 	};
 
-
 	std::string path_ = "";
 
 	float max_x = -FLT_MAX;
@@ -608,4 +698,9 @@ private:
 
 	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);	// 光源的位置，用来设置表面颜色。
 	glm::vec3 camera_pos_ = glm::vec3(0.0f, 0.0f, 1.0f);
+
+	double cos_alpha_;
+	double sin_alpha_;
+	double cos_beta_;
+	double sin_beta_;
 };
