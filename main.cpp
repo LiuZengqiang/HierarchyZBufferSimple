@@ -14,21 +14,15 @@
 #include<iostream>
 #include<string>
 #include<stdlib.h>
-
-// octree加上model旋转会怎样？
-// 会出什么错误？
-
 const unsigned int SCR_WIDTH = 720;
 const unsigned int SCR_HEIGHT = 720;
 const unsigned int SCR_DEPTH = 720;
-std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj";
-// 最中用于显示的z buffer地址
+std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\house.obj";
+
 GLubyte* z_buffer_data;
 
 glm::vec3 lightPos = {-0.8f, 0.5f, 1.0f};
 glm::vec3 cameraPos = {-1.0f, 0.5f, 1.0f};
-
-// initial 
 
 void init(void);
 
@@ -46,6 +40,7 @@ int main(int argc, char ** argv) {
 	octree.beginRender();
 	
 	//octree.debugNodeZ();
+
 	//octree.debugHierarichy();
 
 	//// 参数窗口 wdth,height,model path

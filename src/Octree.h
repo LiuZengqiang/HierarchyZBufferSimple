@@ -8,14 +8,13 @@
 #include <tuple>
 #include<queue>
 
-// scene -> octree -> model
-//	|------> pyramid
-// 八叉树结构
-
-// 八叉树节点
+/// <summary>
+/// Octree Node
+/// </summary>
 struct OctreeNode
 {
-	std::string id_;
+
+	std::string id;
 
 	// childern的szie等于8(0-7)，各个子节点分布如下:
 	//   / 6  / 7 /|
@@ -33,30 +32,26 @@ struct OctreeNode
 	// y[0, height)
 	// z[0, -depth)
 	void createChildren() {
-
-		// 合法边界
+		
+		// valid boundary
 		int x_l = lower_left_corner.x;
 		int x_r = lower_left_corner.x + width - 1;
-
 		int y_b = lower_left_corner.y;
 		int y_t = lower_left_corner.y + height - 1;
-
 		int z_b = lower_left_corner.z - depth + 1;
 		int z_f = lower_left_corner.z;
 
-
+		// is the node only respent a pixel
 		if (x_l == x_r && y_b == y_t && z_b == z_f) {
 			return;
 		}
 
-		// 要满足靠左、靠前，靠下
 		hasChild = true;
-
 
 		glm::ivec3 l = lower_left_corner;
 		// 0
 		childern[0] = new OctreeNode(l, (width + 1) / 2, (height + 1) / 2, (depth + 1) / 2);
-		childern[0]->id_ = id_ + "0";
+		childern[0]->id = id + "0";
 		// 1
 		l.x = lower_left_corner.x + childern[0]->width;
 		if (l.x > x_r) {
@@ -64,7 +59,7 @@ struct OctreeNode
 		}
 		else {
 			childern[1] = new OctreeNode(l, width - childern[0]->width, childern[0]->height, childern[0]->depth);
-			childern[1]->id_ = id_ + "1";
+			childern[1]->id = id + "1";
 		}
 
 		// 2
@@ -75,7 +70,7 @@ struct OctreeNode
 		}
 		else {
 			childern[2] = new OctreeNode(l, childern[0]->width, height - childern[0]->height, childern[0]->depth);
-			childern[2]->id_ = id_ + "2";
+			childern[2]->id = id + "2";
 		}
 
 		// 3
@@ -86,7 +81,7 @@ struct OctreeNode
 		}
 		else {
 			childern[3] = new OctreeNode(l, width - childern[0]->width, height - childern[0]->height, childern[0]->depth);
-			childern[3]->id_ = id_ + "3";
+			childern[3]->id = id + "3";
 		}
 		// 4
 		l.x = lower_left_corner.x;
@@ -97,7 +92,7 @@ struct OctreeNode
 		}
 		else {
 			childern[4] = new OctreeNode(l, childern[0]->width, childern[0]->height, depth - childern[0]->depth);
-			childern[4]->id_ = id_ + "4";
+			childern[4]->id = id + "4";
 		}
 
 		// 5
@@ -109,7 +104,7 @@ struct OctreeNode
 			l.y = childern[1]->lower_left_corner.y;
 			l.z = childern[4]->lower_left_corner.z;
 			childern[5] = new OctreeNode(l, childern[1]->width, childern[1]->height, childern[4]->depth);
-			childern[5]->id_ = id_ + "5";
+			childern[5]->id = id + "5";
 		}
 		// 6
 		if (childern[2] == nullptr || childern[4] == nullptr) {
@@ -120,7 +115,7 @@ struct OctreeNode
 			l.y = childern[2]->lower_left_corner.y;
 			l.z = childern[4]->lower_left_corner.z;
 			childern[6] = new OctreeNode(l, childern[2]->width, childern[2]->height, childern[4]->depth);
-			childern[6]->id_ = id_ + "6";
+			childern[6]->id = id + "6";
 		}
 		// 7
 		if (childern[3] == nullptr || childern[4] == nullptr) {
@@ -131,34 +126,30 @@ struct OctreeNode
 			l.y = childern[3]->lower_left_corner.y;
 			l.z = childern[4]->lower_left_corner.z;
 			childern[7] = new OctreeNode(l, childern[3]->width, childern[3]->height, childern[4]->depth);
-			childern[7]->id_ = id_ + "7";
+			childern[7]->id = id + "7";
 		}
 	}
 
-	std::vector<unsigned int > surfaces_thresh;	// 默认的节点中可以包含小于threshold数量的多边形
-	std::vector<unsigned int > surfaces_inter;	// 与该节点相交的多变形
+	std::vector<unsigned int > surfaces_thresh;
+	std::vector<unsigned int > surfaces_inter;
 
-	OctreeNode* parent;
+	float max_z = -FLT_MAX;
 
-	float max_z = -FLT_MAX;	// 包含的surface的最大值
-
-	//左下角和长宽高?
-	glm::ivec3 lower_left_corner = glm::ivec3(-1, -1, -1);
 	//Lower left corner
+	glm::ivec3 lower_left_corner = glm::ivec3(-1, -1, -1);
+	
 	unsigned int width = 0;
 	unsigned int height = 0;
 	unsigned int depth = 0;
 	OctreeNode(glm::ivec3 l, unsigned int w, unsigned int h, unsigned int d) : lower_left_corner(l), width(w), height(h), depth(d) {
 		max_z = -FLT_MAX;
-		parent = nullptr;
 		surfaces_inter.clear();
 		surfaces_thresh.clear();
 		std::vector<OctreeNode*> temp(8, nullptr);
 		childern.assign(temp.begin(), temp.end());
 	}
 	void debug() {
-
-		std::cout << "node:" << id_ << std::endl;
+		std::cout << "node:" << id << std::endl;
 		std::cout << "\t(" << lower_left_corner.x << "," << lower_left_corner.y << "," << lower_left_corner.z << ") ";
 		std::cout << "width:" << width << " height:" << height << " depth:" << depth << std::endl;
 		std::cout << "\t surface_thresh:";
@@ -171,11 +162,8 @@ struct OctreeNode
 		}
 		std::cout << std::endl;
 	}
-
-	bool isPixel() {
-		return width == 1 && height == 1 && depth == 1;
-	}
 };
+
 
 class Octree
 {
@@ -190,11 +178,11 @@ public:
 		light_pos_ = light_pos;
 
 		root_ = new OctreeNode(glm::ivec3(0, 0, 0), scr_width_, scr_height_, scr_depth_);
-		root_->id_ = "0";
+		root_->id = "0";
 
 	};
 	~Octree() {};
-
+	/* Init z_buffer_data, model, pyramid and octree */
 	void init() {
 		
 		std::cout << "HINT::Octree init." << std::endl;
@@ -272,7 +260,7 @@ public:
 				;
 			}
 			else {
-				std::cout << temp->id_ << ": z:" << pointZ2PixelZ(temp->max_z) << std::endl;
+				std::cout << temp->id << ": z:" << pointZ2PixelZ(temp->max_z) << std::endl;
 			}
 			for (int i = 0; i < 8; i++) {
 				if (temp->childern[i] != nullptr) {
@@ -283,18 +271,20 @@ public:
 		std::cout << "----- Hierarchy Travel node z End-----" << std::endl;
 	}
 
-	// 初始化各个节点OctTreeNode的z值
+	/* Init octree node's z value */
 	void initOctreeNodeZ() {
 		
 		std::cout << "HINT::Octree initial node z value." << std::endl;
 
 		initOctreeNodeZ(root_);
 	}
-
+	
+	/* get z_buffer_data */
 	GLubyte* getZBufferData() {
 		return z_buffer_data_;
 	}
-
+	
+	/* begin render */
 	void beginRender() {
 		std::cout << "HINT::Octree beginRender." << std::endl;
 		
@@ -423,7 +413,7 @@ private:
 			int n_y_t = node->lower_left_corner.y + node->height - 1;
 			float n_max_z = node->max_z;
 
-			if (pyramid_.isRender(n_x_l, n_x_r, n_y_b, n_y_t, n_max_z, node->id_)) {
+			if (pyramid_.isRender(n_x_l, n_x_r, n_y_b, n_y_t, n_max_z, node->id)) {
 
 				// 可能绘制，那么就遍历node中的多边形，挨个绘制
 				for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
@@ -435,7 +425,7 @@ private:
 				}
 			}
 			else {
-				//std::cout << "HINT::Octree::inOrderTraveral The node:" << node->id_ << " dont be render." << std::endl;
+				//std::cout << "HINT::Octree::inOrderTraveral The node:" << node->id << " dont be render." << std::endl;
 				//std::cout << "\t The max z of node is " << n_max_z << "" << std::endl;
 				cnt_not_render_node_++;
 				cnt_not_render_node_surface_ += (node->surfaces_inter.size() + node->surfaces_thresh.size());
@@ -556,7 +546,7 @@ private:
 		if (point.z > node->lower_left_corner.z || point.z <= (node->lower_left_corner.z - (int)node->depth)) {
 			std::cout << "ERROR::Octree getLocateCubeIdPoint. The z of point is out of range of node represent." << std::endl;
 			std::cout << "\t point.z:" << point.z << " but the valid range is[" << node->lower_left_corner.z << "," << node->lower_left_corner.z - node->depth << ")" << std::endl;
-			std::cout << "\t surface:" << surface_index << ". node:" << node->id_ << std::endl;
+			std::cout << "\t surface:" << surface_index << ". node:" << node->id << std::endl;
 			std::cout << node->lower_left_corner.z << " " << (int)node->depth << " " << (node->lower_left_corner.z - (int)node->depth) << std::endl;
 			return -1;
 		}
@@ -710,7 +700,7 @@ private:
 	/* light position */
 	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);
 	
-	/* number of not render node\surface in not render node\not render surface but dont in not render node */
+	/* number of not render node,surface in not render node and not render surface but dont in not render node */
 	int cnt_not_render_node_ = 0;
 	int cnt_not_render_node_surface_ = 0;
 	int cnt_not_render_surfaces_ = 0;
