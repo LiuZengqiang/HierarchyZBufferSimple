@@ -22,13 +22,6 @@ public:
 	void init() {
 
 		std::cout << "1. init Scene." << std::endl;
-
-		// 1. 初始化model pyramid
-		model_.initCameraLightPos(camera_pos_, light_pos_);
-
-		std::cout << "1.1 load model." << std::endl;
-		model_.loadModel(model_path_);
-
 		z_buffer_data_ = (GLubyte*)malloc((size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		if (z_buffer_data_ == nullptr) {
 			std::cout << "ERROR::Scene::init Malloc memory to z_buffer_data_ fail." << std::endl;
@@ -38,12 +31,15 @@ public:
 			memset(z_buffer_data_, 0, (size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		}
 
-		//model_.rotateModel(camera_pos_);
-		//model_.initColorRemoveNeg();
+		model_.setModelPath(model_path_);
+		model_.setCameraPos(camera_pos_);
+		model_.setLightPos(light_pos_);
+		model_.init();
 
-		model_.scaleModel();
+		pyramid_.setScrWidth(scr_width_);
+		pyramid_.setScrHeight(scr_height_);
+		pyramid_.init();
 
-		pyramid_.build(scr_width_, scr_height_);
 		SCENE_INIT = true;
 	}
 
@@ -54,6 +50,8 @@ public:
 			std::cout << "ERROR::Scene::beginRender Scene do not initialed, please call scene.init() ." << std::endl;
 			return;
 		}
+
+		std::cout << "HINT::Scene begin render." << std::endl;
 
 		int not_render_face_cnt = 0;
 
@@ -72,16 +70,18 @@ public:
 			int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
 			int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
 
-
-			if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, i)) {
+			// 输入为像素坐标和z值
+			if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, std::to_string(i))) {
 				// update Pyramid 和 z_buffer_data_;
 				// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
-				std::vector<glm::ivec2> po_points;
+				
+				
+				std::vector<glm::ivec2> po_points;	//po_points里面存的是多边形的各个点像素值，用来遍历包围盒中的各个像素是否再多边形内
 
 				for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
 					int p_index = model_.sur_faces_[i].indices[j];
-					int temp_x = std::round((1 + model_.points_[p_index].position.x) / 2.0 * (scr_width_ - 1));
-					int temp_y = std::round((1 + model_.points_[p_index].position.y) / 2.0 * (scr_height_ - 1));
+					int temp_x = (int)std::round((1.0f + model_.points_[p_index].position.x) / 2.0f * (scr_width_ - 1));
+					int temp_y = (int)std::round((1.0f + model_.points_[p_index].position.y) / 2.0f * (scr_height_ - 1));
 					glm::ivec2 temp_p(temp_x, temp_y);
 					po_points.push_back(temp_p);
 				}
@@ -99,8 +99,8 @@ public:
 				//	}
 				//}
 
-				for (unsigned int x = p_x_l; x <= p_x_r; x++) {
-					for (unsigned int y = p_y_b; y <= p_y_t; y++) {
+				for (unsigned int x = p_x_l; x <= (unsigned int)p_x_r; x++) {
+					for (unsigned int y = p_y_b; y <= (unsigned int)p_y_t; y++) {
 						glm::ivec2 point(x, y);
 
 						// 如果(x,y)在多边形里面
@@ -219,7 +219,6 @@ private:
 		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(c_b);
 	}
 
-
 	void setPixelAntialiasing(unsigned int x, unsigned int y, float color) {
 
 		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(color * 255);
@@ -242,7 +241,7 @@ private:
 					if (pyramid_.getZ(dx + x, dy + y) <= -FLT_MAX) {
 						if (dx * dy == 0) {
 							int pre_co = z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0];
-							int cur_co = std::min(255.0, pre_co + color * 255 * 0.125);
+							int cur_co = (int)std::min(255.0f, pre_co + color * 255.0f * 0.125f);
 
 							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0] = (GLubyte)(cur_co);
 							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 1] = (GLubyte)(cur_co);
@@ -250,7 +249,7 @@ private:
 						}
 						else {
 							int pre_co = z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0];
-							int cur_co = std::min(255.0, pre_co + color * 255 * 0.0625);
+							int cur_co = (int)std::min(255.0f, pre_co + color * 255.0f * 0.0625f);
 							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0] = (GLubyte)(cur_co);
 							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 1] = (GLubyte)(cur_co);
 							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 2] = (GLubyte)(cur_co);

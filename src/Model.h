@@ -41,255 +41,24 @@ public:
 
 	~Model() {};
 
-	void loadModel(std::string model_path) {
-		path_ = model_path;
-		loadModel();
+	void setModelPath(std::string path) {
+		path_ = path;
 	}
-
-	// todo:: test rotate scale
-	// 旋转model
-	void rotateModel(glm::vec3 camera_pos = glm::vec3(0.0, 0.0, 1.0)) {
-
-		// 同时旋转normal
-		// 防止忘记normalize
-		glm::normalize(camera_pos);
-
-		std::cout << "camera position:(" << camera_pos_.x << "," << camera_pos_.y << "," << camera_pos_.z << ")" << std::endl;
-
-		// 坐标轴旋转alpha,相当于点旋转-alpha
-		// 因此，此处求的的cos_alpha和sin_alpha为cos(-alpha)和sin(-alpha)
-		// beta相同。
-		double cos_alpha = glm::dot(glm::vec3(0.0, 0.0, 1.0), glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)));
-		double sin_alpha = std::sqrt(1.0 - cos_alpha * cos_alpha < 0.0 ? 0.0 : 1.0 - cos_alpha * cos_alpha) * (camera_pos_.x >= 0 ? -1.0 : 1.0);
-
-		double cos_beta = glm::dot(glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)), camera_pos_);
-
-		double sin_beta = std::sqrt(1.0 - cos_beta * cos_beta < 0.0 ? 0.0 : 1.0 - cos_beta * cos_beta) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
-
-
-		// 绕Y轴旋转(-alpha)
-		//          |cos, -sin, 0|
-		// [Z,X]T = |sin,  cos, 0| * |z,x|T
-		//		    |0,      0, 1|
-		for (unsigned int i = 0; i < points_.size(); i++) {
-			float z = points_[i].position.z;
-			float x = points_[i].position.x;
-			points_[i].position.z = (float)(cos_alpha * z + sin_alpha * x * -1.0);
-			points_[i].position.x = (float)(sin_alpha * z + cos_alpha * x);
-			if (global::floatEqual(points_[i].position.x, 0.0f)) {
-				points_[i].position.x = 0.0f;
-			}
-		}
-		for (unsigned int i = 0; i < normals_.size(); i++) {
-			float z = normals_[i].z;
-			float x = normals_[i].x;
-			normals_[i].z = (float)(cos_alpha * z + sin_alpha * x * -1.0);
-			normals_[i].x = (float)(sin_alpha * z + cos_alpha * x);
-			if (global::floatEqual(normals_[i].x, 0.0f)) {
-				normals_[i].x = 0.0f;
-			}
-		}
-		// 绕X轴旋转
-		for (unsigned int i = 0; i < points_.size(); i++) {
-			float z = points_[i].position.z;
-			float y = points_[i].position.y;
-			points_[i].position.z = (float)(cos_beta * z + sin_beta * y * -1.0);
-			points_[i].position.y = (float)(sin_beta * z + cos_beta * y);
-			if (global::floatEqual(points_[i].position.y, 0.0f)) {
-				points_[i].position.y = 0.0f;
-			}
-			if (global::floatEqual(points_[i].position.z, 0.0f)) {
-				points_[i].position.z = 0.0f;
-			}
-		}
-
-		for (unsigned int i = 0; i < normals_.size(); i++) {
-			float z = normals_[i].z;
-			float y = normals_[i].y;
-			normals_[i].z = (float)(cos_beta * z + sin_beta * y * -1.0);
-			normals_[i].y = (float)(sin_beta * z + cos_beta * y);
-			if (global::floatEqual(normals_[i].z, 0.0f)) {
-				normals_[i].z = 0.0f;
-			}
-			if (global::floatEqual(normals_[i].y, 0.0f)) {
-				normals_[i].y = 0.0f;
-			}
-		}
-
-		// 旋转light_pos
-		float z = light_pos_.z;
-		float x = light_pos_.x;
-		light_pos_.z = (float)(cos_alpha * z + sin_alpha * x * -1.0f);
-		light_pos_.x = (float)(sin_alpha * z + cos_alpha * x);
-		z = light_pos_.z;
-		float y = light_pos_.y;
-		light_pos_.z = (float)(cos_beta * z + sin_beta * y * -1.0f);
-		light_pos_.y = (float)(sin_beta * z + cos_beta * y);
+	void setCameraPos(glm::vec3 camera_pos) {
+		camera_pos_ = glm::normalize(camera_pos);
+		
+	};
+	void setLightPos(glm::vec3 light_pos) {
+		light_pos_ = glm::normalize(light_pos);
 	};
 
-	// 也放缩也平移
-	// 为了加速速度
-	// 如果rotate和translate分开那么需要遍历多次，耗时会增加
-	void scaleModel() {
+	void init() {
 
-		initMinMaxXYZ();
+		initCameraLightPos();
+		
+		loadModel();
 
-		// 只需要考虑x,y不需要考虑z的平移
-		float scale = -1.0;
-
-		if (max_x - min_x > max_y - min_y) {
-
-			scale = 2.0 / (max_x - min_x);
-			// 放缩
-			for (unsigned int i = 0; i < points_.size(); i++) {
-
-				// x,y放缩再平移
-				points_[i].position.x = points_[i].position.x * scale - (min_x * scale + 1.0);
-				points_[i].position.y = points_[i].position.y * scale - ((max_y + min_y) / 2) * scale;
-				// z只放缩
-				points_[i].position.z = points_[i].position.z * scale;
-			}
-		}
-		else {
-			scale = 2.0 / (max_y - min_y);
-			// 放缩
-			for (unsigned int i = 0; i < points_.size(); i++) {
-
-				// x,y放缩再平移
-				points_[i].position.x = points_[i].position.x * scale - (max_x + min_x) / 2 * scale;
-				points_[i].position.y = points_[i].position.y * scale - (min_y * scale + 1.0);
-				// z只放缩
-				points_[i].position.z = points_[i].position.z * scale;
-			}
-		}
-	};
-
-	//void removeNegativeNormalSurface() {
-
-	//	std::vector<bool> f(sur_faces_.size(), true);
-
-	//	/*flag_.assign(f.begin(), f.end());
-	//	return;*/
-
-	//	for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-	//		glm::vec3 normal;
-	//		if (sur_faces_[i].nor_indices.empty()) {
-	//			glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
-	//			glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
-	//			glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
-
-	//			glm::vec3 v1 = p2 - p1;
-	//			glm::vec3 v2 = p3 - p2;
-
-	//			normal = glm::normalize(glm::cross(v1, v2));
-	//		}
-	//		else {
-
-	//			glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
-	//			for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
-	//				temp_nor += normals_[sur_faces_[i].nor_indices[j]];
-	//			}
-	//			temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
-	//			temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
-	//			temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
-	//			normal = glm::normalize(temp_nor);
-	//		}
-
-	//		if (normal.z < Epsilon) {
-	//			f[i] = false;
-	//			/*std::cout << "remove surface:" << i << std::endl;
-	//			std::cout << "\t";
-	//			for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
-	//				unsigned int index = sur_faces_[i].indices[j];
-	//				std::cout << "(" << points_[index].x << "," << points_[index].y << "," << points_[index].z << ") ";
-	//			}
-	//			std::cout << std::endl;*/
-	//		}
-	//	}
-
-	//	flag_.assign(f.begin(), f.end());
-
-	//}
-
-	//void initColorRemoveNeg() {
-
-	//	std::vector<bool> f(sur_faces_.size(), true);
-	//	std::vector<double> c(sur_faces_.size(), 0.0);
-
-	//	for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-	//		glm::vec3 normal;
-	//		if (sur_faces_[i].nor_indices.empty()) {
-	//			glm::vec3 p1(points_[sur_faces_[i].indices[0]].position.x, points_[sur_faces_[i].indices[0]].position.y, points_[sur_faces_[i].indices[0]].position.z);
-	//			glm::vec3 p2(points_[sur_faces_[i].indices[1]].position.x, points_[sur_faces_[i].indices[1]].position.y, points_[sur_faces_[i].indices[1]].position.z);
-	//			glm::vec3 p3(points_[sur_faces_[i].indices[2]].position.x, points_[sur_faces_[i].indices[2]].position.y, points_[sur_faces_[i].indices[2]].position.z);
-
-	//			glm::vec3 v1 = p2 - p1;
-	//			glm::vec3 v2 = p3 - p2;
-	//			normal = glm::normalize(glm::cross(v1, v2));
-	//		}
-	//		else {
-	//			glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
-	//			for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
-	//				temp_nor += normals_[sur_faces_[i].nor_indices[j]];
-	//			}
-	//			temp_nor.x = temp_nor.x / sur_faces_[i].nor_indices.size();
-	//			temp_nor.y = temp_nor.y / sur_faces_[i].nor_indices.size();
-	//			temp_nor.z = temp_nor.z / sur_faces_[i].nor_indices.size();
-
-	//			normal = glm::normalize(temp_nor);
-	//		}
-
-	//		// negative surface
-	//		if (normal.z < 0.0) {
-	//			f[i] = false;
-	//		}
-	//		else {
-	//			double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
-	//			if (cos_alpha < 0.0) {
-	//				// diffuse add ambient
-	//				c[i] = 0.0 + 0.1;
-	//			}
-	//			else {
-	//				// diffuse add ambient
-	//				c[i] = std::min(std::pow(cos_alpha, 2) + 0.1, 1.0);
-	//			}
-	//		}
-	//		//std::cout << "color " << c[i] << std::endl;
-	//	}
-
-	//	color_.assign(c.begin(), c.end());
-	//	flag_.assign(f.begin(), f.end());
-	//}
-
-	void initCameraLightPos(glm::vec3 camera_pos, glm::vec3 light_pos) {
-		camera_pos_ = camera_pos;
-		camera_pos_ = glm::normalize(camera_pos_);
-		light_pos_ = light_pos;
-		light_pos_ = glm::normalize(light_pos_);
-		cos_alpha_ = glm::dot(glm::vec3(0.0, 0.0, 1.0), glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)));
-		sin_alpha_ = std::sqrt(1.0 - cos_alpha_ * cos_alpha_ < 0.0 ? 0.0 : 1.0 - cos_alpha_ * cos_alpha_) * (camera_pos_.x >= 0 ? -1.0 : 1.0);
-
-		cos_beta_ = glm::dot(glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)), camera_pos_);
-		sin_beta_ = std::sqrt(1.0 - cos_beta_ * cos_beta_ < 0.0 ? 0.0 : 1.0 - cos_beta_ * cos_beta_) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
-
-		// 旋转light_pos
-		float z = light_pos_.z;
-		float x = light_pos_.x;
-		light_pos_.z = (float)(cos_alpha_ * z + sin_alpha_ * x * -1.0f);
-		light_pos_.x = (float)(sin_alpha_ * z + cos_alpha_ * x);
-		z = light_pos_.z;
-		float y = light_pos_.y;
-		light_pos_.z = (float)(cos_beta_ * z + sin_beta_ * y * -1.0f);
-		light_pos_.y = (float)(sin_beta_ * z + cos_beta_ * y);
-	};
-
-	void setDefaultColor() {
-		std::vector<float> c(sur_faces_.size(), 1.0);
-		for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-			//c[i] = (((int)i + 1) * 1.0 / (sur_faces_.size()));
-			c[i] = 1.0;
-		}
-		color_.assign(c.begin(), c.end());
+		scaleModel();
 	}
 
 	std::pair<float, float> getMinMaxX(unsigned int index) {
@@ -297,10 +66,6 @@ public:
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
 		}
-		/*if (flag_[index] == false) {
-			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
-			return std::pair<float, float>(0.0, 0.0);
-		}*/
 		float ret_max_x = -FLT_MAX;
 		float ret_min_x = FLT_MAX;
 		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
@@ -314,10 +79,6 @@ public:
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
 			return std::pair<float, float>(0.0, 0.0);
 		}
-		/*if (flag_[index] == false) {
-			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
-			return std::pair<float, float>(0.0, 0.0);
-		}*/
 		float ret_max_y = -FLT_MAX;
 		float ret_min_y = FLT_MAX;
 		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
@@ -328,6 +89,28 @@ public:
 
 	}
 
+	std::pair<float, float> getMinMaxZ(unsigned int index) {
+		if (index < 0 || index >= sur_faces_.size()) {
+			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
+			return std::pair<float, float>(0.0, 0.0);
+		}
+		float ret_max_z = -FLT_MAX;
+		float ret_min_z = FLT_MAX;
+		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
+			ret_max_z = std::max(ret_max_z, points_[sur_faces_[index].indices[i]].position.z);
+			ret_min_z = std::min(ret_min_z, points_[sur_faces_[index].indices[i]].position.z);
+		}
+		return std::pair<float, float>(ret_min_z, ret_max_z);
+	}
+
+
+	std::pair<float, float> getModelMinMaxZ() {
+		if (max_z_ == FLT_MAX || min_z_ == -FLT_MAX) {
+			initMinMaxXYZ();
+		}
+		return std::pair<float, float>(min_z_, max_z_);
+	};
+	
 	float getMaxZ(unsigned int index) {
 		if (index < 0 || index >= sur_faces_.size()) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
@@ -398,38 +181,37 @@ public:
 		}
 		std::cout << "-----End all points:-----" << std::endl;
 	}
-
-	//void debugFlag() {
-	//	std::cout << "----- All invalid surfaces -----:" << std::endl;
-	//	for (unsigned int i = 0; i < flag_.size(); i++) {
-	//		if (flag_[i] == false) {
-	//			std::cout << i << ": ";
-	//			for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
-	//				std::cout << "(" << points_[sur_faces_[i].indices[j]].position.x << "," << points_[sur_faces_[i].indices[j]].position.y << "," << points_[sur_faces_[i].indices[j]].position.z << ") ";
-	//			}
-	//			std::cout << std::endl;
-	//		}
-	//	}
-	//	std::cout << "-----End all invalid surfaces:-----" << std::endl;
-
-	//}
-
-	// 根据漫反射，获取指定表面 的颜色
-	std::vector<GLubyte> getColor(unsigned int index) {
-
-
-	}
+	 
 
 	std::vector<Point > points_;	// 点
 	std::vector<Surface > sur_faces_;	//面
 	std::vector<glm::vec3 > normals_;	//法向
 
-	//std::vector<bool > flag_;
 	std::vector<float> color_;
 
 private:
 
+	void initCameraLightPos() {
+		std::cout << "HINT::Model initial camera and light position." << std::endl;
+		cos_alpha_ = glm::dot(glm::vec3(0.0, 0.0, 1.0), glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)));
+		sin_alpha_ = std::sqrt(1.0 - cos_alpha_ * cos_alpha_ < 0.0 ? 0.0 : 1.0 - cos_alpha_ * cos_alpha_) * (camera_pos_.x >= 0 ? -1.0 : 1.0);
+
+		cos_beta_ = glm::dot(glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)), camera_pos_);
+		sin_beta_ = std::sqrt(1.0 - cos_beta_ * cos_beta_ < 0.0 ? 0.0 : 1.0 - cos_beta_ * cos_beta_) * (camera_pos_.y >= 0 ? -1.0 : 1.0);
+
+		// 旋转light_pos
+		float z = light_pos_.z;
+		float x = light_pos_.x;
+		light_pos_.z = (float)(cos_alpha_ * z + sin_alpha_ * x * -1.0f);
+		light_pos_.x = (float)(sin_alpha_ * z + cos_alpha_ * x);
+		z = light_pos_.z;
+		float y = light_pos_.y;
+		light_pos_.z = (float)(cos_beta_ * z + sin_beta_ * y * -1.0f);
+		light_pos_.y = (float)(sin_beta_ * z + cos_beta_ * y);
+	};
+
 	void loadModel() {
+		std::cout << "HINT::Model load model." << std::endl;
 
 		points_.clear();
 		sur_faces_.clear();
@@ -465,7 +247,7 @@ private:
 
 					while ((next_word = getNextStr(line_data, index)) != "") {
 
-						float val = std::atof(next_word.c_str());
+						float val = (float)std::atof(next_word.c_str());
 						pos.push_back(val);
 					}
 					if (pos.size() != 3) {
@@ -592,13 +374,13 @@ private:
 					else {
 						
 						double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
-						if (cos_alpha < 0.0) {
+						if (cos_alpha < 0.0f) {
 							// diffuse add ambient
-							c = 0.0 + 0.1;
+							c = 0.0f + 0.1f;
 						}
 						else {
 							// diffuse add ambient
-							c = std::min(std::pow(cos_alpha, 2) + 0.1, 1.0);
+							c = std::min((float)std::pow(cos_alpha, 2) + 0.1f, 1.0f);
 						}
 						sur_faces_.push_back(f);
 						color_.push_back(c);
@@ -650,6 +432,49 @@ private:
 		}
 	}
 
+
+	void scaleModel() {
+
+		std::cout << "HINT::Model scale model." << std::endl;
+
+		initMinMaxXYZ();
+
+		// 只需要考虑x,y不需要考虑z的平移
+		float scale = -1.0f;
+
+		if (max_x_ - min_x_ > max_y_ - min_y_) {
+
+			scale = 2.0f / (max_x_ - min_x_);
+			// 放缩
+			for (unsigned int i = 0; i < points_.size(); i++) {
+
+				// x,y放缩再平移
+				points_[i].position.x = points_[i].position.x * scale - (min_x_ * scale + 1.0);
+				points_[i].position.y = points_[i].position.y * scale - ((max_y_ + min_y_) / 2) * scale;
+				// z只放缩 再平移(平移到(-x, 0))
+				/*points_[i].position.z = points_[i].position.z * scale;
+				points_[i].position.z -= max_z;*/
+			}
+		}
+		else {
+			scale = 2.0f / (max_y_ - min_y_);
+			// 放缩
+			for (unsigned int i = 0; i < points_.size(); i++) {
+
+				// x,y放缩再平移
+				points_[i].position.x = points_[i].position.x * scale - (max_x_ + min_x_) / 2 * scale;
+				points_[i].position.y = points_[i].position.y * scale - (min_y_ * scale + 1.0);
+				// z放缩 再平移
+				// z放缩是为了不变形，z其实可以不用放缩
+				/*points_[i].position.z = points_[i].position.z * scale;
+				points_[i].position.z -= max_z;*/
+			}
+		}
+
+
+	};
+
+
 	std::string getNextStr(std::string& str, unsigned int& index) {
 		unsigned int j = index;
 		while (j < str.length() && str[j] == ' ') {
@@ -670,37 +495,39 @@ private:
 	}
 
 	void initMinMaxXYZ() {
-		min_x = FLT_MAX;
-		min_y = FLT_MAX;
-		min_z = FLT_MAX;
-		max_x = -FLT_MAX;
-		max_y = -FLT_MAX;
-		max_z = -FLT_MAX;
+		min_x_ = FLT_MAX;
+		min_y_ = FLT_MAX;
+		min_z_ = FLT_MAX;
+
+		max_x_ = -FLT_MAX;
+		max_y_ = -FLT_MAX;
+		max_z_ = -FLT_MAX;
 
 		for (unsigned int i = 0; i < points_.size(); i++) {
-			max_x = std::max(max_x, points_[i].position.x);
-			max_y = std::max(max_y, points_[i].position.y);
-			max_z = std::max(max_z, points_[i].position.z);
-			min_x = std::min(min_x, points_[i].position.x);
-			min_y = std::min(min_y, points_[i].position.y);
-			min_z = std::min(min_z, points_[i].position.z);
+			max_x_ = std::max(max_x_, points_[i].position.x);
+			max_y_ = std::max(max_y_, points_[i].position.y);
+			max_z_ = std::max(max_z_, points_[i].position.z);
+
+			min_x_ = std::min(min_x_, points_[i].position.x);
+			min_y_ = std::min(min_y_, points_[i].position.y);
+			min_z_ = std::min(min_z_, points_[i].position.z);
 		}
 	};
 
 	std::string path_ = "";
 
-	float max_x = -FLT_MAX;
-	float max_y = -FLT_MAX;
-	float max_z = -FLT_MAX;
-	float min_x = FLT_MAX;
-	float min_y = FLT_MAX;
-	float min_z = FLT_MAX;
+	float max_x_ = -FLT_MAX;
+	float max_y_ = -FLT_MAX;
+	float max_z_ = -FLT_MAX;
+	float min_x_ = FLT_MAX;
+	float min_y_ = FLT_MAX;
+	float min_z_ = FLT_MAX;
 
 	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);	// 光源的位置，用来设置表面颜色。
 	glm::vec3 camera_pos_ = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	double cos_alpha_;
-	double sin_alpha_;
-	double cos_beta_;
-	double sin_beta_;
+	double cos_alpha_ = 1.0f;
+	double sin_alpha_ = 0.0f;
+	double cos_beta_ = 1.0f;
+	double sin_beta_ = 0.0f;
 };

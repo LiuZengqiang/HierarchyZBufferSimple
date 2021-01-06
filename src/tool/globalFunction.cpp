@@ -117,7 +117,7 @@ namespace global {
 		if (ret_x < p.x) {
 			return ret;
 		}
-		ret.x = std::floor(ret_x);
+		ret.x = (float)std::floor(ret_x);
 		ret.y = point.y;
 		return ret;
 	}

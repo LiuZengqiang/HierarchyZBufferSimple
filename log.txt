@@ -63,6 +63,12 @@ log:
 	1.0类似的小数会被默认认为是double类型，必须使用1.0f显式表明是float类型。
 20210103:
 todo:
-	在load model时边读取point和normal值边旋转，剔除负向的面，旋转只是一个矩阵，可以提前跟据camera vector计算出来。
-	Octree八叉树。
+	在load model时边读取point和normal值边旋转，剔除负向的面，旋转只是一个矩阵，可以提前跟据camera vector计算出来。[done]
+	Octree八叉树。[done]
 	使用八叉树需要计算多边形和某个平面矩形是否相交。
+20210105:
+todo:
+	使用八叉树需要计算多边形和某个平面矩形是否相交。
+	重新组织代码:Scene->octree
+					->model
+					->pyramid

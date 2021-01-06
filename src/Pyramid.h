@@ -37,19 +37,24 @@ class Pyramid
 {
 public:
 	Pyramid() {
-		root_ = nullptr;
-		scr_height_ = scr_width_ = 0;
 	}
 
-	void build(unsigned int scr_width, unsigned int scr_height) {
-		scr_height_ = scr_height;
+	void setScrWidth(unsigned int scr_width) {
 		scr_width_ = scr_width;
-		
+	};
+
+	void setScrHeight(unsigned int scr_height) {
+		scr_height_ = scr_height;
+	};
+
+	void init() {
+		std::cout << "HINT::Pyramid initial pyramid." << std::endl;
 		z_buffer_node_.clear();
-		std::vector<PyramidNode*> z(scr_width * scr_height, nullptr);
+		std::vector<PyramidNode*> z((int)scr_width_ * scr_height_, nullptr);
+
 		z_buffer_node_.assign(z.begin(), z.end());
 
-		root_ = buildPyramid(0, scr_width - 1, 0, scr_height - 1, nullptr);
+		root_ = buildPyramid(0, scr_width_ - 1, 0, scr_height_ - 1, nullptr);
 	}
 
 	~Pyramid() {};
@@ -81,22 +86,17 @@ public:
 			std::cout << "-------------------------------" << std::endl;*/
 	};
 
-	// 用来debug的函数
-	int getHeight(PyramidNode* root) {
-		if (root == nullptr) {
-			return 0;
-		}
-
-		int ret = getHeight(root->children[0]) + 1;
-		ret = std::max(getHeight(root->children[1]) + 1, ret);
-		ret = std::max(getHeight(root->children[2]) + 1, ret);
-		ret = std::max(getHeight(root->children[3]) + 1, ret);
-
-		return ret;
-	}
-
-
-	bool isRender(int p_x_l, int p_x_r, int p_y_b, int p_y_t, float max_z, unsigned int index) {
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="p_x_l">待测试的多边形包围盒的 左边x 像素值</param>
+	/// <param name="p_x_r">待测试的多边形包围盒的 右边x 像素值</param>
+	/// <param name="p_y_b">待测试的多边形包围盒的 下边y 像素值</param>
+	/// <param name="p_y_t">待测试的多边形包围盒的 上边y 像素值</param>
+	/// <param name="max_z">待测试的多边形的 最大z 坐标值</param>
+	/// <param name="index">待测试的面的index，用于debug的参数</param>
+	/// <returns>true该多边形可以绘制/false该多边形显然不需要绘制</returns>
+	bool isRender(unsigned int p_x_l, unsigned int p_x_r, unsigned int p_y_b, unsigned int p_y_t, float max_z, std::string index) {
 
 		//std::cout << "surface " << index << " " << " max_z:" << max_z << std::endl;
 
@@ -105,7 +105,7 @@ public:
 			return false;
 		}
 
-		if (p_x_r > scr_width_ || p_x_l < 0 || p_y_b<0 || p_y_t>scr_height_) {
+		if (p_x_r > scr_width_ || p_x_l < 0 || p_y_b < 0 || p_y_t > scr_height_) {
 
 			std::cout << "ERROR::Pyramid::isRender surface " << index << "(" << p_x_l << " - " << p_x_r << ", " << p_y_b << " - " << p_y_t << ")" << "is out of range(0, 0) - (" << scr_width_ << ", " << scr_height_ << ")" << std::endl;
 			exit(0);
@@ -124,26 +124,6 @@ public:
 
 
 		if (max_z >= node->depth_val) {
-
-			//TODO::complete update z_buffer_data and pyramid.z_buffer_node_;
-
-			// 更新pyramid
-			// 需要知道polygon的所有顶点信息,点node
-			// 然后更新node节点窗口中所有的像素点
-		/*	for (int x = node->x_l; x <= node->x_r; x++) {
-				for (int y = node->y_b; y <= node->y_t; y++) {
-
-					if ((x,y) in polygon and pyramid.z(x,y) < polygon(x,y)) {
-
-						pyramid.update(node(x,y), polygon(x,y).z);
-						z_buffer._data = polygon(x, y).color;
-					}
-					else {
-						continue;
-					}
-				}
-			}*/
-			//updatePyramid(node, max_z);
 			return true;
 		}
 		return false;
@@ -266,6 +246,21 @@ private:
 		}
 		return p_node;
 	};
+
+
+	// 用来debug的函数
+	int getHeight(PyramidNode* root) {
+		if (root == nullptr) {
+			return 0;
+		}
+
+		int ret = getHeight(root->children[0]) + 1;
+		ret = std::max(getHeight(root->children[1]) + 1, ret);
+		ret = std::max(getHeight(root->children[2]) + 1, ret);
+		ret = std::max(getHeight(root->children[3]) + 1, ret);
+
+		return ret;
+	}
 	unsigned int scr_height_ = 512;
 	unsigned int scr_width_ = 512;
 	PyramidNode* root_ = nullptr;

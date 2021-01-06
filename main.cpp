@@ -10,20 +10,26 @@
 #include"Point.h"
 #include"Model.h"
 #include"tool\globalFunction.cpp"
+#include"Octree.h"
 #include<iostream>
 #include<string>
 #include<stdlib.h>
 
+// octree加上model旋转会怎样？
+// 会出什么错误？
+
 const unsigned int SCR_WIDTH = 720;
 const unsigned int SCR_HEIGHT = 720;
-
+const unsigned int SCR_DEPTH = 720;
+std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\house.obj";
 // 最中用于显示的z buffer地址
 GLubyte* z_buffer_data;
 
 glm::vec3 lightPos = {-0.8f, 0.5f, 1.0f};
-glm::vec3 cameraPos = {-0.5f, 0.5f, 1.0f};
+glm::vec3 cameraPos = {0.0f, 0.0f, 1.0f};
 
 // initial 
+
 void init(void);
 
 void display();
@@ -33,19 +39,32 @@ void keyBorad(unsigned char key, int x, int y);
 
 int main(int argc, char ** argv) {
 	
+	Octree octree(SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, model_path, cameraPos, lightPos);
 
-	// 参数窗口 wdth,height,model path
-	Scene scene(SCR_WIDTH, SCR_HEIGHT, "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj");
+	octree.init();
 	
-	scene.setCameraPosition(cameraPos);
-	
-	scene.setLightPosition(lightPos);
-	
-	scene.init();
-	
-	scene.beginRender();
+	octree.initOctreeNodeZ();
 
-	z_buffer_data = scene.getZBufferData();
+	octree.inOrderTraversal();
+	
+	//octree.debugNodeZ();
+	//octree.debugHierarichy();
+
+	
+
+	//// 参数窗口 wdth,height,model path
+	//Scene scene(SCR_WIDTH, SCR_HEIGHT, "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj");
+	//
+	//scene.setCameraPosition(cameraPos);
+	//
+	//scene.setLightPosition(lightPos);
+	//
+	//scene.init();
+	//
+	//scene.beginRender();
+
+	//z_buffer_data = scene.getZBufferData();
+	z_buffer_data = octree.getZBufferData();
 	
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
