@@ -1,6 +1,6 @@
-// todo:删除Importer类，使用model类的loadmodel方法
 #pragma once
 #include"Point.h"
+#include"Surface.h"
 #include"tool\globalFunction.cpp"
 #include<iostream>
 #include<string>
@@ -8,26 +8,6 @@
 #include<sstream>
 #include<vector>
 #include<float.h>
-
-struct Surface
-{
-	std::vector<int> indices;
-	std::vector<int > nor_indices;
-
-	Surface() {
-		indices.clear();
-		nor_indices.clear();
-	}
-	void debug() {
-
-		std::cout << "size:" << indices.size() << std::endl;
-		for (unsigned int i = 0; i < indices.size(); i++) {
-			std::cout << indices[i] << " ";
-		}
-		std::cout << std::endl;
-	}
-};
-
 class Model
 {
 public:
@@ -46,21 +26,23 @@ public:
 	}
 	void setCameraPos(glm::vec3 camera_pos) {
 		camera_pos_ = glm::normalize(camera_pos);
-		
+
 	};
 	void setLightPos(glm::vec3 light_pos) {
 		light_pos_ = glm::normalize(light_pos);
 	};
 
+	/* init model:init camera and light position,load model, scale model */
 	void init() {
 
 		initCameraLightPos();
-		
+
 		loadModel();
 
 		scaleModel();
 	}
 
+	/* get surface index min and max X */
 	std::pair<float, float> getMinMaxX(unsigned int index) {
 		if (index < 0 || index >= sur_faces_.size()) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
@@ -68,12 +50,20 @@ public:
 		}
 		float ret_max_x = -FLT_MAX;
 		float ret_min_x = FLT_MAX;
-		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
+		int size = (int)sur_faces_[index].indices.size();
+
+#pragma omp parallel for
+		for (int i = 0; i < size; i++) {
+#pragma omp critical
+			{
 			ret_max_x = std::max(ret_max_x, points_[sur_faces_[index].indices[i]].position.x);
 			ret_min_x = std::min(ret_min_x, points_[sur_faces_[index].indices[i]].position.x);
+			}
 		}
+
 		return std::pair<float, float>(ret_min_x, ret_max_x);
 	}
+	/* get surface index min and max Y */
 	std::pair<float, float> getMinMaxY(unsigned int index) {
 		if (index < 0 || index >= sur_faces_.size()) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
@@ -81,14 +71,19 @@ public:
 		}
 		float ret_max_y = -FLT_MAX;
 		float ret_min_y = FLT_MAX;
-		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
+		int size = (int)sur_faces_[index].indices.size();
+#pragma omp parallel for
+		for (int i = 0; i < size; i++) {
+#pragma omp critical
+			{
 			ret_max_y = std::max(ret_max_y, points_[sur_faces_[index].indices[i]].position.y);
 			ret_min_y = std::min(ret_min_y, points_[sur_faces_[index].indices[i]].position.y);
+			}
 		}
 		return std::pair<float, float>(ret_min_y, ret_max_y);
 
 	}
-
+	/* get surface index min and max Z */
 	std::pair<float, float> getMinMaxZ(unsigned int index) {
 		if (index < 0 || index >= sur_faces_.size()) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
@@ -96,21 +91,25 @@ public:
 		}
 		float ret_max_z = -FLT_MAX;
 		float ret_min_z = FLT_MAX;
-		for (unsigned int i = 0; i < sur_faces_[index].indices.size(); i++) {
-			ret_max_z = std::max(ret_max_z, points_[sur_faces_[index].indices[i]].position.z);
-			ret_min_z = std::min(ret_min_z, points_[sur_faces_[index].indices[i]].position.z);
+		int size = (int)sur_faces_[index].indices.size();
+#pragma omp parallel for		
+		for (int i = 0; i < size; i++) {
+#pragma omp critical			
+			{
+				ret_max_z = std::max(ret_max_z, points_[sur_faces_[index].indices[i]].position.z);
+				ret_min_z = std::min(ret_min_z, points_[sur_faces_[index].indices[i]].position.z);
+			}
 		}
 		return std::pair<float, float>(ret_min_z, ret_max_z);
 	}
-
-
+	/* get model min and max Z */
 	std::pair<float, float> getModelMinMaxZ() {
 		if (max_z_ == FLT_MAX || min_z_ == -FLT_MAX) {
 			initMinMaxXYZ();
 		}
 		return std::pair<float, float>(min_z_, max_z_);
 	};
-	
+	/* get surface index max Z */
 	float getMaxZ(unsigned int index) {
 		if (index < 0 || index >= sur_faces_.size()) {
 			std::cout << "ERROR::Model::getSurfaceMaxZ the index:" << index << " is out of range which is should in [0," << sur_faces_.size() - 1 << ")." << std::endl;
@@ -125,72 +124,17 @@ public:
 		}
 		return ret;
 	}
-
-	void debugSurfaces() {
-		std::cout << "-----All surfaces:-----" << std::endl;
-		// TODO:: process debug import model
-		for (unsigned int i = 0; i < sur_faces_.size(); i++) {
-			std::cout << "surface " << i << ":" << std::endl;
-			std::cout << "\t pos:";
-			for (unsigned int j = 0; j < sur_faces_[i].indices.size(); j++) {
-				std::cout << "(" << points_[j].position.x << "," << points_[j].position.y << "," << points_[j].position.z << ") ";
-			}
-			std::cout << std::endl;
-			std::cout << "\t nor:";
-			for (unsigned int j = 0; j < sur_faces_[i].nor_indices.size(); j++) {
-				std::cout << "(" << normals_[sur_faces_[i].nor_indices[j]].x << "," << normals_[sur_faces_[i].nor_indices[j]].y << "," << normals_[sur_faces_[i].nor_indices[j]].z << ") ";
-			}
-			std::cout << std::endl;
-		}
-		std::cout << "-----End all surfaces-----" << std::endl;
-	}
-	void debugSurface(size_t index) {
-
-		if (index < 0 || index >= sur_faces_.size()) {
-			std::cout << "ERROR::Model debugSurface(index) index:" << index << " out of range[0," << sur_faces_.size() - 1 << "]" << std::endl;
-		}
-
-
-		std::cout << "surface " << index << ":" << std::endl;
-		std::cout << "\t pos:";
-		for (unsigned int j = 0; j < sur_faces_[index].indices.size(); j++) {
-			std::cout << "(" << points_[sur_faces_[index].indices[j]].position.x << "," << points_[sur_faces_[index].indices[j]].position.y << "," << points_[sur_faces_[index].indices[j]].position.z << ") ";
-		}
-		std::cout << std::endl;
-		glm::vec3 n(0.0, 0.0, 0.0);
-		std::cout << "\t nor:";
-		for (unsigned int j = 0; j < sur_faces_[index].nor_indices.size(); j++) {
-			std::cout << "(" << normals_[sur_faces_[index].nor_indices[j]].x << "," << normals_[sur_faces_[index].nor_indices[j]].y << "," << normals_[sur_faces_[index].nor_indices[j]].z << ") ";
-
-			n += normals_[sur_faces_[index].nor_indices[j]];
-		}
-		n.x = n.x / sur_faces_[index].nor_indices.size();
-		n.y = n.y / sur_faces_[index].nor_indices.size();
-		n.z = n.z / sur_faces_[index].nor_indices.size();
-		std::cout << std::endl;
-		std::cout << "\t normal:(" << n.x << "," << n.y << "," << n.z << ")" << std::endl;
-		std::cout << std::endl;
-
+	/* get number of all surfaces */
+	int getSurfacesNum() {
+		return num_surfaces_;
 	}
 
-	void debugPoints(std::string name = "") {
-		std::cout << "-----All points:" << name << "-----" << std::endl;
-		std::cout << "points size:" << points_.size() << std::endl;
-		for (unsigned int i = 0; i < points_.size(); i++) {
-			points_[i].debug();
-		}
-		std::cout << "-----End all points:-----" << std::endl;
-	}
-	 
-
-	std::vector<Point > points_;	// 点
-	std::vector<Surface > sur_faces_;	//面
-	std::vector<glm::vec3 > normals_;	//法向
+	std::vector<Point > points_;
+	std::vector<Surface > sur_faces_;
+	std::vector<glm::vec3 > normals_;
 
 	std::vector<float> color_;
-
 private:
-
 	void initCameraLightPos() {
 		std::cout << "HINT::Model initial camera and light position." << std::endl;
 		cos_alpha_ = glm::dot(glm::vec3(0.0, 0.0, 1.0), glm::normalize(glm::vec3(camera_pos_.x, 0.0, camera_pos_.z)));
@@ -254,9 +198,6 @@ private:
 						std::cout << "ERROR::Importer loadModel. The point positions parameter is error. Get " << pos.size() << " parameters." << std::endl;
 						return;
 					}
-					/*p.position.x = pos[0];
-					p.position.y = pos[1];
-					p.position.z = pos[2];*/
 
 					p.position.x = (float)(sin_alpha_ * pos[2] + cos_alpha_ * pos[0]);
 					p.position.z = (float)(cos_alpha_ * pos[2] + sin_alpha_ * pos[0] * (-1.0));
@@ -277,6 +218,8 @@ private:
 					points_.push_back(p);
 				}
 				else if (next_word == "f") {	// f
+
+					num_surfaces_++;
 
 					Surface f;
 					// position indices
@@ -365,14 +308,14 @@ private:
 
 						normal = glm::normalize(temp_nor);
 					}
-					
+
 					float c = 0.0f;
 					// negative surface
 					if (normal.z < 0.0) {
 						;
 					}
 					else {
-						
+
 						double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
 						if (cos_alpha < 0.0f) {
 							// diffuse add ambient
@@ -385,14 +328,14 @@ private:
 						sur_faces_.push_back(f);
 						color_.push_back(c);
 					}
-					
+
 				}
 				else if (next_word == "vn") {
 
 					std::vector<float> nor;
 
 					while ((next_word = getNextStr(line_data, index)) != "") {
-						float val = std::atof(next_word.c_str());
+						float val = (float)std::atof(next_word.c_str());
 						nor.push_back(val);
 					}
 					if (nor.size() != 3) {
@@ -425,13 +368,10 @@ private:
 
 				}
 				else {		// other, no means
-					//std::cout << "Ignore "<<line_id<<" line." << std::endl;
-
 				}
 			}
 		}
 	}
-
 
 	void scaleModel() {
 
@@ -449,8 +389,8 @@ private:
 			for (unsigned int i = 0; i < points_.size(); i++) {
 
 				// x,y放缩再平移
-				points_[i].position.x = points_[i].position.x * scale - (min_x_ * scale + 1.0);
-				points_[i].position.y = points_[i].position.y * scale - ((max_y_ + min_y_) / 2) * scale;
+				points_[i].position.x = points_[i].position.x * scale - (min_x_ * scale + 1.0f);
+				points_[i].position.y = points_[i].position.y * scale - ((max_y_ + min_y_) / 2.0f) * scale;
 				// z只放缩 再平移(平移到(-x, 0))
 				/*points_[i].position.z = points_[i].position.z * scale;
 				points_[i].position.z -= max_z;*/
@@ -462,18 +402,15 @@ private:
 			for (unsigned int i = 0; i < points_.size(); i++) {
 
 				// x,y放缩再平移
-				points_[i].position.x = points_[i].position.x * scale - (max_x_ + min_x_) / 2 * scale;
-				points_[i].position.y = points_[i].position.y * scale - (min_y_ * scale + 1.0);
+				points_[i].position.x = points_[i].position.x * scale - (max_x_ + min_x_) / 2.0f * scale;
+				points_[i].position.y = points_[i].position.y * scale - (min_y_ * scale + 1.0f);
 				// z放缩 再平移
 				// z放缩是为了不变形，z其实可以不用放缩
 				/*points_[i].position.z = points_[i].position.z * scale;
 				points_[i].position.z -= max_z;*/
 			}
 		}
-
-
 	};
-
 
 	std::string getNextStr(std::string& str, unsigned int& index) {
 		unsigned int j = index;
@@ -502,19 +439,25 @@ private:
 		max_x_ = -FLT_MAX;
 		max_y_ = -FLT_MAX;
 		max_z_ = -FLT_MAX;
+		int size = (int)points_.size();
+#pragma omp parallel for
+		for (int i = 0; i < size; i++) {
+#pragma omp critical			
+			{
+				max_x_ = std::max(max_x_, points_[i].position.x);
+				max_y_ = std::max(max_y_, points_[i].position.y);
+				max_z_ = std::max(max_z_, points_[i].position.z);
 
-		for (unsigned int i = 0; i < points_.size(); i++) {
-			max_x_ = std::max(max_x_, points_[i].position.x);
-			max_y_ = std::max(max_y_, points_[i].position.y);
-			max_z_ = std::max(max_z_, points_[i].position.z);
-
-			min_x_ = std::min(min_x_, points_[i].position.x);
-			min_y_ = std::min(min_y_, points_[i].position.y);
-			min_z_ = std::min(min_z_, points_[i].position.z);
+				min_x_ = std::min(min_x_, points_[i].position.x);
+				min_y_ = std::min(min_y_, points_[i].position.y);
+				min_z_ = std::min(min_z_, points_[i].position.z);
+			}
 		}
 	};
 
 	std::string path_ = "";
+
+	int num_surfaces_ = 0;
 
 	float max_x_ = -FLT_MAX;
 	float max_y_ = -FLT_MAX;

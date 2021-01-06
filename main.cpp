@@ -1,19 +1,15 @@
-﻿// TODO:TEST!!!
-// 重写坐标系？！！！
-// 实数坐标 (-1,1)-(-1, 1)
-// 像素坐标 (0, scr_width)-(0, scr_height)
-// 函数参数顺序 (scr_width,scr_heigh)
-#include"GL\freeglut.h"
+﻿#include"GL\freeglut.h"
 #include"GL\glut.h"
 #include"Scene.h"
 #include"Pyramid.h"
 #include"Point.h"
 #include"Model.h"
 #include"tool\globalFunction.cpp"
-#include"Octree.h"
+
 #include<iostream>
 #include<string>
 #include<stdlib.h>
+
 const unsigned int SCR_WIDTH = 720;
 const unsigned int SCR_HEIGHT = 720;
 const unsigned int SCR_DEPTH = 720;
@@ -30,33 +26,16 @@ void display();
 void reshape(int w, int h);
 void keyBorad(unsigned char key, int x, int y);
 
-
 int main(int argc, char ** argv) {
-	
-	Octree octree(SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, model_path, cameraPos, lightPos);
 
-	octree.init();
+	// 参数窗口 wdth,height,model path
+	Scene scene(model_path, cameraPos, lightPos, SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, 1);
 	
-	octree.beginRender();
+	scene.init();
 	
-	//octree.debugNodeZ();
+	scene.beginRender();
 
-	//octree.debugHierarichy();
-
-	//// 参数窗口 wdth,height,model path
-	//Scene scene(SCR_WIDTH, SCR_HEIGHT, model_path);
-	//
-	//scene.setCameraPosition(cameraPos);
-	//
-	//scene.setLightPosition(lightPos);
-	//
-	//scene.init();
-	//
-	//scene.beginRender();
-
-	//z_buffer_data = scene.getZBufferData();
-	z_buffer_data = octree.getZBufferData();
-	
+	z_buffer_data = scene.getColorData();	
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(SCR_WIDTH, SCR_HEIGHT);

@@ -1,11 +1,10 @@
 #pragma once
 #include"Model.h"
-#include"Scene.h"
 #include<iostream>
 #include<vector>
 #include<string>
 #include<set>
-#include <tuple>
+#include<tuple>
 #include<queue>
 
 /// <summary>
@@ -13,9 +12,7 @@
 /// </summary>
 struct OctreeNode
 {
-
 	std::string id;
-
 	// childern的szie等于8(0-7)，各个子节点分布如下:
 	//   / 6  / 7 /|
 	//  / 2  / 3 / |	
@@ -32,7 +29,7 @@ struct OctreeNode
 	// y[0, height)
 	// z[0, -depth)
 	void createChildren() {
-		
+
 		// valid boundary
 		int x_l = lower_left_corner.x;
 		int x_r = lower_left_corner.x + width - 1;
@@ -137,7 +134,7 @@ struct OctreeNode
 
 	//Lower left corner
 	glm::ivec3 lower_left_corner = glm::ivec3(-1, -1, -1);
-	
+
 	unsigned int width = 0;
 	unsigned int height = 0;
 	unsigned int depth = 0;
@@ -148,162 +145,72 @@ struct OctreeNode
 		std::vector<OctreeNode*> temp(8, nullptr);
 		childern.assign(temp.begin(), temp.end());
 	}
-	void debug() {
-		std::cout << "node:" << id << std::endl;
-		std::cout << "\t(" << lower_left_corner.x << "," << lower_left_corner.y << "," << lower_left_corner.z << ") ";
-		std::cout << "width:" << width << " height:" << height << " depth:" << depth << std::endl;
-		std::cout << "\t surface_thresh:";
-		for (unsigned int i = 0; i < surfaces_thresh.size(); i++) {
-			std::cout << surfaces_thresh[i] << " ";
-		}
-		std::cout << "\t surface_inter:";
-		for (unsigned int i = 0; i < surfaces_inter.size(); i++) {
-			std::cout << surfaces_inter[i] << " ";
-		}
-		std::cout << std::endl;
-	}
 };
-
 
 class Octree
 {
 public:
-	Octree(unsigned int scr_width, unsigned int scr_height, unsigned int scr_depth, std::string model_path, glm::vec3 camer_pos, glm::vec3 light_pos) {
+
+	Octree(Model& model, unsigned int scr_width, unsigned int scr_height, unsigned int scr_depth) {
+
+		model_ = model;
 		scr_width_ = scr_width;
 		scr_height_ = scr_height;
 		scr_depth_ = scr_depth;
-		model_path_ = model_path;
-
-		camera_pos_ = camer_pos;
-		light_pos_ = light_pos;
-
 		root_ = new OctreeNode(glm::ivec3(0, 0, 0), scr_width_, scr_height_, scr_depth_);
 		root_->id = "0";
-
 	};
 	~Octree() {};
-	/* Init z_buffer_data, model, pyramid and octree */
 	void init() {
-		
 		std::cout << "HINT::Octree init." << std::endl;
-		
-		z_buffer_data_ = (GLubyte*)malloc((size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
-		if (z_buffer_data_ == nullptr) {
-			std::cout << "ERROR::Octree::init Malloc memory to z_buffer_data_ fail." << std::endl;
-			exit(0);
-		}
-		else {
-			memset(z_buffer_data_, 0, (size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
-		}
-
-		// init model
-		model_.setModelPath(model_path_);
-		model_.setCameraPos(camera_pos_);
-		model_.setLightPos(light_pos_);
-		model_.init();
-
-		// init pyramid
-		pyramid_.setScrWidth(scr_width_);
-		pyramid_.setScrHeight(scr_height_);
-		pyramid_.init();
-
 		// init octree
 		build();
-
 		initOctreeNodeZ();
-
 	}
 
-	void debugHierarichy() {
-		std::cout << "----- Hierarchy Travel Begin-----" << std::endl;
-		std::queue<OctreeNode* > que;
-		int cnt = 0;
-		que.push(root_);
-
-		while (!que.empty()) {
-			OctreeNode* temp = que.front();
-			que.pop();
-
-			if (temp->surfaces_inter.empty() && temp->surfaces_thresh.empty()) {
-				;
-			}
-			else {
-				cnt += temp->surfaces_inter.size();
-				cnt += temp->surfaces_thresh.size();
-				temp->debug();
-			}
-
-
-
-			for (int i = 0; i < 8; i++) {
-				if (temp->childern[i] != nullptr) {
-					que.push(temp->childern[i]);
-				}
-			}
-		}
-		std::cout << "----- Hierarchy Travel End-----" << std::endl;
-
-		std::cout << "The number of all surfaces is:" << model_.sur_faces_.size() << std::endl;
-		std::cout << "The number of surfaces in octree is:" << cnt << std::endl;
-
-	}
-	void debugNodeZ() {
-		std::cout << "----- Hierarchy Travel node z Begin-----" << std::endl;
-		std::queue<OctreeNode* > que;
-
-		que.push(root_);
-
-		while (!que.empty()) {
-			OctreeNode* temp = que.front();
-			que.pop();
-			if (temp->surfaces_inter.empty() && temp->surfaces_thresh.empty()) {
-				;
-			}
-			else {
-				std::cout << temp->id << ": z:" << pointZ2PixelZ(temp->max_z) << std::endl;
-			}
-			for (int i = 0; i < 8; i++) {
-				if (temp->childern[i] != nullptr) {
-					que.push(temp->childern[i]);
-				}
-			}
-		}
-		std::cout << "----- Hierarchy Travel node z End-----" << std::endl;
+	OctreeNode* getOctreeRoot() {
+		return root_;
 	}
 
-	/* Init octree node's z value */
-	void initOctreeNodeZ() {
-		
-		std::cout << "HINT::Octree initial node z value." << std::endl;
-
-		initOctreeNodeZ(root_);
-	}
-	
-	/* get z_buffer_data */
-	GLubyte* getZBufferData() {
-		return z_buffer_data_;
-	}
-	
-	/* begin render */
-	void beginRender() {
-		std::cout << "HINT::Octree beginRender." << std::endl;
-		
-		inOrderTraveral(root_);
-
-		std::cout << "The number of dont render node is:" << cnt_not_render_node_ << std::endl;
-		std::cout << "The number of dont render node surface is:" << cnt_not_render_node_surface_ << std::endl;
-		std::cout << "The number of dont render surface is:" << cnt_not_render_surfaces_ << std::endl;
-		std::cout << "The number of dont render all surfaces is:" << cnt_not_render_node_surface_ + cnt_not_render_surfaces_ << std::endl;
-
-	}
 private:
-	/* build octree */ 
-	void build() {
 
+	/* build octree */
+	void build() {
 		for (unsigned int i = 0; i < model_.sur_faces_.size(); i++) {
 			insertSur(root_, i);
 		}
 	};
+
+	/* Init octree node's z value */
+	void initOctreeNodeZ() {
+
+		std::cout << "HINT::Octree initial node z value." << std::endl;
+
+		initOctreeNodeZ(root_);
+	}
+	void initOctreeNodeZ(OctreeNode* node) {
+		if (node == nullptr) {
+			return;
+		}
+
+		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
+			;
+		}
+		else {
+			float z = -FLT_MAX;
+			for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
+				z = std::max(z, model_.getMaxZ(node->surfaces_inter[i]));
+			}
+			for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
+				z = std::max(z, model_.getMaxZ(node->surfaces_thresh[i]));
+			}
+			node->max_z = z;
+		}
+
+		for (unsigned int i = 0; i < 8; i++) {
+			initOctreeNodeZ(node->childern[i]);
+		}
+	}
 
 	/* Insert surface_index into node or node's childen */
 	void insertSur(OctreeNode* node, unsigned int surface_index) {
@@ -339,10 +246,7 @@ private:
 						return;
 					}
 
-					if (node->childern[temp_id_1] == nullptr) {
-						node->debug();
-						exit(0);
-					}
+
 					insertSur(node->childern[temp_id_1], node->surfaces_thresh[i]);
 				}
 				node->surfaces_thresh.clear();
@@ -353,10 +257,7 @@ private:
 			// 如果node已经有child了
 			// 直接加到对应的child中去
 			if (node->hasChild) {
-				if (node->childern[id_1] == nullptr) {
-					node->debug();
-					exit(1);
-				}
+
 				insertSur(node->childern[id_1], surface_index);
 			}
 			else if (node->surfaces_thresh.size() + node->surfaces_inter.size() < threshold_) {	// 如果node的data数量小于阈值
@@ -378,10 +279,7 @@ private:
 							std::cout << "ERROR::insertSur temp_id_1==-1 or temp_id_1(" << temp_id_1 << ") != temp_id_2(" << temp_id_2 << ")." << std::endl;
 							return;
 						}
-						if (node->childern[temp_id_1] == nullptr) {
-							node->debug();
-							exit(3);
-						}
+
 						insertSur(node->childern[temp_id_1], node->surfaces_thresh[i]);
 					}
 					node->surfaces_thresh.clear();
@@ -392,138 +290,6 @@ private:
 		}
 
 	}
-	
-	/* Inorder traveral the octree and render node */
-	void inOrderTraveral(OctreeNode* node) {
-		if (node == nullptr) {
-			return;
-		}
-		for (unsigned int i = 0; i < 4; i++) {
-			inOrderTraveral(node->childern[i]);
-		}
-		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
-			;
-		}
-		else {
-
-			// p_xy_lrbt是node矩形的左右下上边，不是多边形的左右下上边
-			int n_x_l = node->lower_left_corner.x;
-			int n_x_r = node->lower_left_corner.x + node->width - 1;
-			int n_y_b = node->lower_left_corner.y;
-			int n_y_t = node->lower_left_corner.y + node->height - 1;
-			float n_max_z = node->max_z;
-
-			if (pyramid_.isRender(n_x_l, n_x_r, n_y_b, n_y_t, n_max_z, node->id)) {
-
-				// 可能绘制，那么就遍历node中的多边形，挨个绘制
-				for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
-					renderSurface(node->surfaces_thresh[i]);
-				}
-
-				for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
-					renderSurface(node->surfaces_inter[i]);
-				}
-			}
-			else {
-				//std::cout << "HINT::Octree::inOrderTraveral The node:" << node->id << " dont be render." << std::endl;
-				//std::cout << "\t The max z of node is " << n_max_z << "" << std::endl;
-				cnt_not_render_node_++;
-				cnt_not_render_node_surface_ += (node->surfaces_inter.size() + node->surfaces_thresh.size());
-			}
-		}
-
-		for (unsigned int i = 4; i < 8; i++) {
-			inOrderTraveral(node->childern[i]);
-		}
-	}
-	
-	/* Initial node's z value */
-	void initOctreeNodeZ(OctreeNode* node) {
-		if (node == nullptr) {
-			return;
-		}
-
-		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
-			;
-		}
-		else {
-			float z = -FLT_MAX;
-			for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
-				z = std::max(z, model_.getMaxZ(node->surfaces_inter[i]));
-			}
-			for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
-				z = std::max(z, model_.getMaxZ(node->surfaces_thresh[i]));
-			}
-			node->max_z = z;
-		}
-
-		for (unsigned int i = 0; i < 8; i++) {
-			initOctreeNodeZ(node->childern[i]);
-		}
-	}
-
-	/* Render the surface i */
-	void renderSurface(unsigned int i) {
-		std::pair<float, float> min_max_x = model_.getMinMaxX(i);
-		std::pair<float, float> min_max_y = model_.getMinMaxY(i);
-		float max_z = model_.getMaxZ(i);
-		// 得到对应的像素位置
-		int p_x_l = (int)std::round((1 + min_max_x.first) / 2.0f * (scr_width_ - 1));
-		int p_x_r = (int)std::round((1 + min_max_x.second) / 2.0f * (scr_width_ - 1));
-		int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
-		int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
-		// 输入为像素坐标和z值
-		if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, std::to_string(i))) {
-			// update Pyramid 和 z_buffer_data_;
-			// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
-			std::vector<glm::ivec2> po_points;	//po_points里面存的是多边形的各个点像素值，用来遍历包围盒中的各个像素是否再多边形内
-
-			for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
-				int p_index = model_.sur_faces_[i].indices[j];
-				int temp_x = (int)std::round((1.0f + model_.points_[p_index].position.x) / 2.0f * (scr_width_ - 1));
-				int temp_y = (int)std::round((1.0f + model_.points_[p_index].position.y) / 2.0f * (scr_height_ - 1));
-				glm::ivec2 temp_p(temp_x, temp_y);
-				po_points.push_back(temp_p);
-			}
-			for (unsigned int x = p_x_l; x <= (unsigned int)p_x_r; x++) {
-				for (unsigned int y = p_y_b; y <= (unsigned int)p_y_t; y++) {
-					glm::ivec2 point(x, y);
-
-					// 如果(x,y)在多边形里面
-					if (global::pointInPolygon(point, po_points)) {
-
-						float f_x = ((float)x) / (scr_width_ - 1) * 2.0 - 1.0;
-						float f_y = ((float)y) / (scr_height_ - 1) * 2.0 - 1.0;
-						glm::vec3 ori(f_x, f_y, 0.0);
-						int p_index = model_.sur_faces_[i].indices[0];
-						glm::vec3 a(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-						p_index = model_.sur_faces_[i].indices[1];
-						glm::vec3 b(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-						p_index = model_.sur_faces_[i].indices[2];
-						glm::vec3 c(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-
-						float z = global::interSectZ(ori, a, b, c);
-						float pry_z = pyramid_.getZ(x, y);
-
-						if (global::floatEqual(z, pry_z)) {
-							this->meanSetPixel(x, y, model_.color_[i]);
-
-						}
-						else if (z > pyramid_.getZ(x, y)) {
-							setPixelAntialiasing(x, y, model_.color_[i]);
-							pyramid_.updatePyramid(x, y, z);
-						}
-					}
-					else {
-
-					}
-				}
-			}
-		}
-		else {
-			cnt_not_render_surfaces_++;
-		}
-	}
 
 	/* Get point in which children cube of node */
 	int getLocateCubeIdPoint(OctreeNode* node, glm::ivec3 point, unsigned int surface_index) {
@@ -533,12 +299,12 @@ private:
 			return -1;
 		}
 		// x
-		if (point.x < node->lower_left_corner.x || point.x >= node->lower_left_corner.x + node->width) {
+		if (point.x < node->lower_left_corner.x || point.x >= node->lower_left_corner.x + (int)node->width) {
 			std::cout << "ERROR::Octree getLocateCubeIdPoint. The x of point is out of range of node represent." << std::endl;
 			return -1;
 		}
 		// y
-		if (point.y < node->lower_left_corner.y || point.y >= node->lower_left_corner.y + node->height) {
+		if (point.y < node->lower_left_corner.y || point.y >= node->lower_left_corner.y + (int)node->height) {
 			std::cout << "ERROR::Octree getLocateCubeIdPoint. The y of point is out of range of node represent." << std::endl;
 			return -1;
 		}
@@ -568,16 +334,6 @@ private:
 		}
 		return ret;
 	}
-
-	/* Transform coordinate form real number to unsigned int */
-	int pointZ2PixelZ(float z) {
-
-		std::pair<float, float> min_max_model_z = model_.getModelMinMaxZ();
-		int ret = (int)std::round((z - min_max_model_z.first) / (min_max_model_z.second - min_max_model_z.first) * (scr_depth_ - 1) - scr_depth_ + 1);
-		return ret;
-
-	}
-	
 	/* Get surface in which children cube of node */
 	std::pair<int, int> getLocateCubeId(OctreeNode* node, unsigned int surface_index) {
 		std::pair<float, float> min_max_x = model_.getMinMaxX(surface_index);
@@ -606,102 +362,17 @@ private:
 		return ret;
 	}
 
-	/* Set pixel color */
-	void setPixel(unsigned int x, unsigned int y, float color) {
-		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(color * 255);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 1] = (GLubyte)(color * 255);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(color * 255);
-	}
-	
-	/* Set pixel color with mean color of previous and current color value*/
-	void meanSetPixel(unsigned int x, unsigned int y, float color) {
-		float c_r = z_buffer_data_[3 * (y * scr_width_ + x) + 0] + color * 255;
-		c_r /= 2.0;
-		c_r = std::min(c_r, 255.0f);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(c_r);
-
-		float c_g = z_buffer_data_[3 * (y * scr_width_ + x) + 1] + color * 255;
-		c_g /= 2.0;
-		c_g = std::min(c_g, 255.0f);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 1] = (GLubyte)(c_g);
-
-		float c_b = z_buffer_data_[3 * (y * scr_width_ + x) + 2] + color * 255;
-		c_b /= 2.0;
-		c_b = std::min(c_b, 255.0f);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(c_b);
-	}
-
-	/* Set pixel color with wiping neighbors pixel color */
-	void setPixelAntialiasing(unsigned int x, unsigned int y, float color) {
-
-		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(color * 255);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 1] = (GLubyte)(color * 255);
-		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(color * 255);
-
-		// 消除黑边锯齿
-		// |0.0625 0.125 0.0625|
-		// |0.125  1.0   0.125 |
-		// |0.0625 0.125 0.0625|
-		for (int dx = -1; dx <= 1; dx++) {
-			for (int dy = -1; dy <= 1; dy++) {
-				if (dx == 0 && dy == 0) {
-					continue;
-				}
-				if (dx + x < 0 || dx + x >= scr_width_ || dy + y < 0 || dy + y >= scr_height_) {
-					continue;
-				}
-				else {
-					if (pyramid_.getZ(dx + x, dy + y) <= -FLT_MAX) {
-						if (dx * dy == 0) {
-							int pre_co = z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0];
-							int cur_co = (int)std::min(255.0f, pre_co + color * 255.0f * 0.125f);
-
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0] = (GLubyte)(cur_co);
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 1] = (GLubyte)(cur_co);
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 2] = (GLubyte)(cur_co);
-						}
-						else {
-							int pre_co = z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0];
-							int cur_co = (int)std::min(255.0f, pre_co + color * 255.0f * 0.0625f);
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 0] = (GLubyte)(cur_co);
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 1] = (GLubyte)(cur_co);
-							z_buffer_data_[3 * ((dy + y) * scr_width_ + dx + x) + 2] = (GLubyte)(cur_co);
-
-						}
-					}
-				}
-			}
-		}
-	}
-
 	/* model */
 	Model model_;
-	/* pyramid */
-	Pyramid pyramid_;
-	
+
 	/* octree root */
 	OctreeNode* root_;
-	
-	/* color data of windows */
-	GLubyte* z_buffer_data_;
+
 	/* threshold of one octree node's capacity */
 	unsigned int threshold_ = 5;
-	
+
 	/* windows' width\height\depth */
 	unsigned int scr_width_ = -1;
 	unsigned int scr_height_ = -1;
 	unsigned int scr_depth_ = -1;
-
-	/* model file path */
-	std::string model_path_;
-	
-	/* camera position */
-	glm::vec3 camera_pos_ = glm::vec3(0.0f, 0.0f, 1.0f);
-	/* light position */
-	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);
-	
-	/* number of not render node,surface in not render node and not render surface but dont in not render node */
-	int cnt_not_render_node_ = 0;
-	int cnt_not_render_node_surface_ = 0;
-	int cnt_not_render_surfaces_ = 0;
 };

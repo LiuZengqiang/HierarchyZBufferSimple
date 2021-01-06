@@ -8,7 +8,6 @@
 #include<queue>
 struct PyramidNode
 {
-	// 所表示的屏幕
 	int x_l;
 	int x_r;
 	int y_b;
@@ -58,34 +57,6 @@ public:
 	}
 
 	~Pyramid() {};
-
-	void debug() {
-
-		std::cout << "pyramid depth is:" << getHeight(root_) << std::endl;
-
-		/*	std::cout << "-----hirerachy travel tree-----" << std::endl;
-			std::queue<PyramidNode*> que;
-			que.push(root_);
-			while (!que.empty()) {
-				std::queue<PyramidNode*> temp_que;
-
-				while (!que.empty()){
-					PyramidNode* n = que.front();
-					que.pop();
-
-					std::cout << n->depth_val << " ";
-					for (int i = 0; i < 4; i++) {
-						if (n->children[i] != nullptr) {
-							temp_que.push(n->children[i]);
-						}
-					}
-				}
-				std::cout << std::endl;
-				que = temp_que;
-			}
-			std::cout << "-------------------------------" << std::endl;*/
-	};
-
 	/// <summary>
 	/// 
 	/// </summary>
@@ -114,9 +85,7 @@ public:
 
 
 		PyramidNode* node = findFinestNode(p_x_l, p_x_r, p_y_b, p_y_t, max_z, root_);
-		/*	std::cout << "HINT:: surface " << index << ": (" << p_x_l << "," << p_y_b << "),(" << p_x_r << "," << p_y_t << ")." << std::endl;
-			std::cout << "\tnode:(" << node->x_l << "," << node->y_b << "),(" << node->x_r << "," << node->y_t << ")." << std::endl;*/
-
+	 
 		if (node == nullptr) {
 			std::cout << "ERROR::isRender The finest node is nullptr?" << std::endl;
 			return false;
@@ -246,21 +215,6 @@ private:
 		}
 		return p_node;
 	};
-
-
-	// 用来debug的函数
-	int getHeight(PyramidNode* root) {
-		if (root == nullptr) {
-			return 0;
-		}
-
-		int ret = getHeight(root->children[0]) + 1;
-		ret = std::max(getHeight(root->children[1]) + 1, ret);
-		ret = std::max(getHeight(root->children[2]) + 1, ret);
-		ret = std::max(getHeight(root->children[3]) + 1, ret);
-
-		return ret;
-	}
 	unsigned int scr_height_ = 512;
 	unsigned int scr_width_ = 512;
 	PyramidNode* root_ = nullptr;

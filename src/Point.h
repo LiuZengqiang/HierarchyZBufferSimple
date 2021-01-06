@@ -6,7 +6,6 @@ class Point {
 public:
 	glm::vec3 position;
 	Point() {
-		//x = y = z = r = g = b = 0.0;
 		position.x = position.y = position.z = 0.0;
 	}
 
