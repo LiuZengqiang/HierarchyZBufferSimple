@@ -21,12 +21,12 @@
 const unsigned int SCR_WIDTH = 720;
 const unsigned int SCR_HEIGHT = 720;
 const unsigned int SCR_DEPTH = 720;
-std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\house.obj";
+std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj";
 // 最中用于显示的z buffer地址
 GLubyte* z_buffer_data;
 
 glm::vec3 lightPos = {-0.8f, 0.5f, 1.0f};
-glm::vec3 cameraPos = {0.0f, 0.0f, 1.0f};
+glm::vec3 cameraPos = {-1.0f, 0.5f, 1.0f};
 
 // initial 
 
@@ -43,17 +43,13 @@ int main(int argc, char ** argv) {
 
 	octree.init();
 	
-	octree.initOctreeNodeZ();
-
-	octree.inOrderTraversal();
+	octree.beginRender();
 	
 	//octree.debugNodeZ();
 	//octree.debugHierarichy();
 
-	
-
 	//// 参数窗口 wdth,height,model path
-	//Scene scene(SCR_WIDTH, SCR_HEIGHT, "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj");
+	//Scene scene(SCR_WIDTH, SCR_HEIGHT, model_path);
 	//
 	//scene.setCameraPosition(cameraPos);
 	//

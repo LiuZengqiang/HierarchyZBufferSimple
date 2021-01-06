@@ -21,7 +21,7 @@ public:
 
 	void init() {
 
-		std::cout << "1. init Scene." << std::endl;
+		std::cout << "HINT::Scene init." << std::endl;
 		z_buffer_data_ = (GLubyte*)malloc((size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		if (z_buffer_data_ == nullptr) {
 			std::cout << "ERROR::Scene::init Malloc memory to z_buffer_data_ fail." << std::endl;
@@ -141,9 +141,9 @@ public:
 			}
 		}
 		//showDepth();
-		std::cout << "The number of surfaces is " << model_.sur_faces_.size() << std::endl;
-		std::cout << "Do not rendered surface number is :" << not_render_face_cnt << std::endl;
-		std::cout << "Mean pixel number is :" << mean_pixel_cnt << std::endl;
+		std::cout << "The number of all surfaces is :" << model_.sur_faces_.size() << std::endl;
+		std::cout << "The number of dont render surfaces is :" << not_render_face_cnt << std::endl;
+		std::cout << "The number of mean pixel is :" << mean_pixel_cnt << std::endl;
 	};
 
 	GLubyte* getZBufferData() {
@@ -218,6 +218,7 @@ private:
 		c_b = std::min(c_b, 255.0f);
 		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(c_b);
 	}
+
 
 	void setPixelAntialiasing(unsigned int x, unsigned int y, float color) {
 

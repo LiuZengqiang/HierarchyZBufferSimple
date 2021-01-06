@@ -10,8 +10,6 @@
 
 // scene -> octree -> model
 //	|------> pyramid
-
-
 // 八叉树结构
 
 // 八叉树节点
@@ -198,7 +196,9 @@ public:
 	~Octree() {};
 
 	void init() {
-
+		
+		std::cout << "HINT::Octree init." << std::endl;
+		
 		z_buffer_data_ = (GLubyte*)malloc((size_t)scr_height_ * scr_width_ * 3 * sizeof(GLubyte));
 		if (z_buffer_data_ == nullptr) {
 			std::cout << "ERROR::Octree::init Malloc memory to z_buffer_data_ fail." << std::endl;
@@ -221,6 +221,8 @@ public:
 
 		// init octree
 		build();
+
+		initOctreeNodeZ();
 
 	}
 
@@ -270,7 +272,7 @@ public:
 				;
 			}
 			else {
-				std::cout << temp->id_ << ": z:" << pointZ2PicelZ(temp->max_z) << std::endl;
+				std::cout << temp->id_ << ": z:" << pointZ2PixelZ(temp->max_z) << std::endl;
 			}
 			for (int i = 0; i < 8; i++) {
 				if (temp->childern[i] != nullptr) {
@@ -283,6 +285,9 @@ public:
 
 	// 初始化各个节点OctTreeNode的z值
 	void initOctreeNodeZ() {
+		
+		std::cout << "HINT::Octree initial node z value." << std::endl;
+
 		initOctreeNodeZ(root_);
 	}
 
@@ -290,161 +295,33 @@ public:
 		return z_buffer_data_;
 	}
 
-	void inOrderTraversal() {
-		std::cout << "HINT::Octree inOrderTraveral." << std::endl;
-		inOrderTraversal(root_);
+	void beginRender() {
+		std::cout << "HINT::Octree beginRender." << std::endl;
+		
+		inOrderTraveral(root_);
+
+		std::cout << "The number of dont render node is:" << cnt_not_render_node_ << std::endl;
+		std::cout << "The number of dont render node surface is:" << cnt_not_render_node_surface_ << std::endl;
+		std::cout << "The number of dont render surface is:" << cnt_not_render_surfaces_ << std::endl;
+		std::cout << "The number of dont render all surfaces is:" << cnt_not_render_node_surface_ + cnt_not_render_surfaces_ << std::endl;
+
 	}
 private:
-	// 初始化octree
+	/* build octree */ 
 	void build() {
 
 		for (unsigned int i = 0; i < model_.sur_faces_.size(); i++) {
 			insertSur(root_, i);
 		}
 	};
-	void inOrderTraversal(OctreeNode* node) {
-		if (node == nullptr) {
-			return;
-		}
-		for (unsigned int i = 0; i < 4; i++) {
-			inOrderTraversal(node->childern[i]);
-		}
 
-		// 判断当前node是否需要绘制
-		// TODO::20210105
-		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
-			;
-		}
-		else {
-
-			// p_xy_lrbt是node矩形的左右下上边，不是多边形的左右下上边
-			int n_x_l = node->lower_left_corner.x;
-			int n_x_r = node->lower_left_corner.x + node->width - 1;
-			int n_y_b = node->lower_left_corner.y;
-			int n_y_t = node->lower_left_corner.y + node->height - 1;
-			float n_max_z = node->max_z;
-
-			if (pyramid_.isRender(n_x_l, n_x_r, n_y_b, n_y_t, n_max_z, node->id_)) {
-
-				// 可能绘制，那么就遍历node中的多边形，挨个绘制
-				for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
-					renderPolygon(node->surfaces_thresh[i]);
-				}
-
-				for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
-					renderPolygon(node->surfaces_inter[i]);
-				}
-			}
-			else {
-				std::cout << "HINT::Octree::inOrderTraveral The node:" << node->id_ << " dont be render." << std::endl;
-				std::cout << "\t The max z of node is " << n_max_z << "" << std::endl;
-			}
-		}
-
-
-		for (unsigned int i = 4; i < 8; i++) {
-			inOrderTraversal(node->childern[i]);
-		}
-	}
-
-
-	void initOctreeNodeZ(OctreeNode* node) {
-		if (node == nullptr) {
-			return;
-		}
-
-		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
-			;
-		}
-		else {
-			float z = -FLT_MAX;
-			for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
-				z = std::max(z, model_.getMaxZ(node->surfaces_inter[i]));
-			}
-			for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
-				z = std::max(z, model_.getMaxZ(node->surfaces_thresh[i]));
-			}
-			node->max_z = z;
-		}
-
-		for (unsigned int i = 0; i < 8; i++) {
-			initOctreeNodeZ(node->childern[i]);
-		}
-	}
-
-	// 绘制单个多边形
-	void renderPolygon(unsigned int i) {
-		std::pair<float, float> min_max_x = model_.getMinMaxX(i);
-		std::pair<float, float> min_max_y = model_.getMinMaxY(i);
-		float max_z = model_.getMaxZ(i);
-		// 得到对应的像素位置
-		int p_x_l = (int)std::round((1 + min_max_x.first) / 2.0f * (scr_width_ - 1));
-		int p_x_r = (int)std::round((1 + min_max_x.second) / 2.0f * (scr_width_ - 1));
-		int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
-		int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
-		// 输入为像素坐标和z值
-		if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, std::to_string(i))) {
-			// update Pyramid 和 z_buffer_data_;
-			// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
-
-
-			std::vector<glm::ivec2> po_points;	//po_points里面存的是多边形的各个点像素值，用来遍历包围盒中的各个像素是否再多边形内
-
-			for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
-				int p_index = model_.sur_faces_[i].indices[j];
-				int temp_x = (int)std::round((1.0f + model_.points_[p_index].position.x) / 2.0f * (scr_width_ - 1));
-				int temp_y = (int)std::round((1.0f + model_.points_[p_index].position.y) / 2.0f * (scr_height_ - 1));
-				glm::ivec2 temp_p(temp_x, temp_y);
-				po_points.push_back(temp_p);
-			}
-			for (unsigned int x = p_x_l; x <= (unsigned int)p_x_r; x++) {
-				for (unsigned int y = p_y_b; y <= (unsigned int)p_y_t; y++) {
-					glm::ivec2 point(x, y);
-
-					// 如果(x,y)在多边形里面
-					if (global::pointInPolygon(point, po_points)) {
-
-						float f_x = ((float)x) / (scr_width_ - 1) * 2.0 - 1.0;
-						float f_y = ((float)y) / (scr_height_ - 1) * 2.0 - 1.0;
-						glm::vec3 ori(f_x, f_y, 0.0);
-						int p_index = model_.sur_faces_[i].indices[0];
-						glm::vec3 a(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-						p_index = model_.sur_faces_[i].indices[1];
-						glm::vec3 b(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-						p_index = model_.sur_faces_[i].indices[2];
-						glm::vec3 c(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
-
-						float z = global::interSectZ(ori, a, b, c);
-						float pry_z = pyramid_.getZ(x, y);
-
-						if (global::floatEqual(z, pry_z)) {
-							this->meanSetPixel(x, y, model_.color_[i]);
-
-						}
-						else if (z > pyramid_.getZ(x, y)) {
-							setPixelAntialiasing(x, y, model_.color_[i]);
-							pyramid_.updatePyramid(x, y, z);
-						}
-					}
-					else {
-
-					}
-				}
-			}
-		}
-	}
-
+	/* Insert surface_index into node or node's childen */
 	void insertSur(OctreeNode* node, unsigned int surface_index) {
 
-		if (node==nullptr) {
+		if (node == nullptr) {
 			std::cout << "ERROR::Octree::insertSur The node is nullptr." << std::endl;
 			std::cout << "\t surface index:" << surface_index << std::endl;
 		}
-
-		/*if (surface_index==580) {
-			model_.debugSurface(surface_index);
-		}*/
-
 		// 判断多边形的所有点是否在同一个小立方体中
 		// 得到多边形各个点所在的正方形编号
 
@@ -525,7 +402,140 @@ private:
 		}
 
 	}
+	
+	/* Inorder traveral the octree and render node */
+	void inOrderTraveral(OctreeNode* node) {
+		if (node == nullptr) {
+			return;
+		}
+		for (unsigned int i = 0; i < 4; i++) {
+			inOrderTraveral(node->childern[i]);
+		}
+		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
+			;
+		}
+		else {
 
+			// p_xy_lrbt是node矩形的左右下上边，不是多边形的左右下上边
+			int n_x_l = node->lower_left_corner.x;
+			int n_x_r = node->lower_left_corner.x + node->width - 1;
+			int n_y_b = node->lower_left_corner.y;
+			int n_y_t = node->lower_left_corner.y + node->height - 1;
+			float n_max_z = node->max_z;
+
+			if (pyramid_.isRender(n_x_l, n_x_r, n_y_b, n_y_t, n_max_z, node->id_)) {
+
+				// 可能绘制，那么就遍历node中的多边形，挨个绘制
+				for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
+					renderSurface(node->surfaces_thresh[i]);
+				}
+
+				for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
+					renderSurface(node->surfaces_inter[i]);
+				}
+			}
+			else {
+				//std::cout << "HINT::Octree::inOrderTraveral The node:" << node->id_ << " dont be render." << std::endl;
+				//std::cout << "\t The max z of node is " << n_max_z << "" << std::endl;
+				cnt_not_render_node_++;
+				cnt_not_render_node_surface_ += (node->surfaces_inter.size() + node->surfaces_thresh.size());
+			}
+		}
+
+		for (unsigned int i = 4; i < 8; i++) {
+			inOrderTraveral(node->childern[i]);
+		}
+	}
+	
+	/* Initial node's z value */
+	void initOctreeNodeZ(OctreeNode* node) {
+		if (node == nullptr) {
+			return;
+		}
+
+		if (node->surfaces_inter.empty() && node->surfaces_thresh.empty()) {
+			;
+		}
+		else {
+			float z = -FLT_MAX;
+			for (unsigned int i = 0; i < node->surfaces_inter.size(); i++) {
+				z = std::max(z, model_.getMaxZ(node->surfaces_inter[i]));
+			}
+			for (unsigned int i = 0; i < node->surfaces_thresh.size(); i++) {
+				z = std::max(z, model_.getMaxZ(node->surfaces_thresh[i]));
+			}
+			node->max_z = z;
+		}
+
+		for (unsigned int i = 0; i < 8; i++) {
+			initOctreeNodeZ(node->childern[i]);
+		}
+	}
+
+	/* Render the surface i */
+	void renderSurface(unsigned int i) {
+		std::pair<float, float> min_max_x = model_.getMinMaxX(i);
+		std::pair<float, float> min_max_y = model_.getMinMaxY(i);
+		float max_z = model_.getMaxZ(i);
+		// 得到对应的像素位置
+		int p_x_l = (int)std::round((1 + min_max_x.first) / 2.0f * (scr_width_ - 1));
+		int p_x_r = (int)std::round((1 + min_max_x.second) / 2.0f * (scr_width_ - 1));
+		int p_y_b = (int)std::round((1 + min_max_y.first) / 2.0f * (scr_height_ - 1));
+		int p_y_t = (int)std::round((1 + min_max_y.second) / 2.0f * (scr_height_ - 1));
+		// 输入为像素坐标和z值
+		if (pyramid_.isRender(p_x_l, p_x_r, p_y_b, p_y_t, max_z, std::to_string(i))) {
+			// update Pyramid 和 z_buffer_data_;
+			// 更新pyramid只需要知道z_buffer_node_，然后再updatePramid(z_buffer_node_[x], z);
+			std::vector<glm::ivec2> po_points;	//po_points里面存的是多边形的各个点像素值，用来遍历包围盒中的各个像素是否再多边形内
+
+			for (unsigned int j = 0; j < model_.sur_faces_[i].indices.size(); j++) {
+				int p_index = model_.sur_faces_[i].indices[j];
+				int temp_x = (int)std::round((1.0f + model_.points_[p_index].position.x) / 2.0f * (scr_width_ - 1));
+				int temp_y = (int)std::round((1.0f + model_.points_[p_index].position.y) / 2.0f * (scr_height_ - 1));
+				glm::ivec2 temp_p(temp_x, temp_y);
+				po_points.push_back(temp_p);
+			}
+			for (unsigned int x = p_x_l; x <= (unsigned int)p_x_r; x++) {
+				for (unsigned int y = p_y_b; y <= (unsigned int)p_y_t; y++) {
+					glm::ivec2 point(x, y);
+
+					// 如果(x,y)在多边形里面
+					if (global::pointInPolygon(point, po_points)) {
+
+						float f_x = ((float)x) / (scr_width_ - 1) * 2.0 - 1.0;
+						float f_y = ((float)y) / (scr_height_ - 1) * 2.0 - 1.0;
+						glm::vec3 ori(f_x, f_y, 0.0);
+						int p_index = model_.sur_faces_[i].indices[0];
+						glm::vec3 a(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+						p_index = model_.sur_faces_[i].indices[1];
+						glm::vec3 b(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+						p_index = model_.sur_faces_[i].indices[2];
+						glm::vec3 c(model_.points_[p_index].position.x, model_.points_[p_index].position.y, model_.points_[p_index].position.z);
+
+						float z = global::interSectZ(ori, a, b, c);
+						float pry_z = pyramid_.getZ(x, y);
+
+						if (global::floatEqual(z, pry_z)) {
+							this->meanSetPixel(x, y, model_.color_[i]);
+
+						}
+						else if (z > pyramid_.getZ(x, y)) {
+							setPixelAntialiasing(x, y, model_.color_[i]);
+							pyramid_.updatePyramid(x, y, z);
+						}
+					}
+					else {
+
+					}
+				}
+			}
+		}
+		else {
+			cnt_not_render_surfaces_++;
+		}
+	}
+
+	/* Get point in which children cube of node */
 	int getLocateCubeIdPoint(OctreeNode* node, glm::ivec3 point, unsigned int surface_index) {
 
 		if (node == nullptr) {
@@ -569,15 +579,16 @@ private:
 		return ret;
 	}
 
-
-	int pointZ2PicelZ(float z) {
+	/* Transform coordinate form real number to unsigned int */
+	int pointZ2PixelZ(float z) {
 
 		std::pair<float, float> min_max_model_z = model_.getModelMinMaxZ();
 		int ret = (int)std::round((z - min_max_model_z.first) / (min_max_model_z.second - min_max_model_z.first) * (scr_depth_ - 1) - scr_depth_ + 1);
 		return ret;
 
 	}
-
+	
+	/* Get surface in which children cube of node */
 	std::pair<int, int> getLocateCubeId(OctreeNode* node, unsigned int surface_index) {
 		std::pair<float, float> min_max_x = model_.getMinMaxX(surface_index);
 		std::pair<float, float> min_max_y = model_.getMinMaxY(surface_index);
@@ -605,13 +616,14 @@ private:
 		return ret;
 	}
 
-
+	/* Set pixel color */
 	void setPixel(unsigned int x, unsigned int y, float color) {
 		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(color * 255);
 		z_buffer_data_[3 * (y * scr_width_ + x) + 1] = (GLubyte)(color * 255);
 		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(color * 255);
 	}
-
+	
+	/* Set pixel color with mean color of previous and current color value*/
 	void meanSetPixel(unsigned int x, unsigned int y, float color) {
 		float c_r = z_buffer_data_[3 * (y * scr_width_ + x) + 0] + color * 255;
 		c_r /= 2.0;
@@ -629,7 +641,7 @@ private:
 		z_buffer_data_[3 * (y * scr_width_ + x) + 2] = (GLubyte)(c_b);
 	}
 
-
+	/* Set pixel color with wiping neighbors pixel color */
 	void setPixelAntialiasing(unsigned int x, unsigned int y, float color) {
 
 		z_buffer_data_[3 * (y * scr_width_ + x) + 0] = (GLubyte)(color * 255);
@@ -672,24 +684,34 @@ private:
 		}
 	}
 
-
+	/* model */
 	Model model_;
-
+	/* pyramid */
 	Pyramid pyramid_;
-
+	
+	/* octree root */
 	OctreeNode* root_;
-
+	
+	/* color data of windows */
 	GLubyte* z_buffer_data_;
-
-	unsigned int threshold_ = 5;	// 
-
+	/* threshold of one octree node's capacity */
+	unsigned int threshold_ = 5;
+	
+	/* windows' width\height\depth */
 	unsigned int scr_width_ = -1;
 	unsigned int scr_height_ = -1;
 	unsigned int scr_depth_ = -1;
 
+	/* model file path */
 	std::string model_path_;
-
-
+	
+	/* camera position */
 	glm::vec3 camera_pos_ = glm::vec3(0.0f, 0.0f, 1.0f);
+	/* light position */
 	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);
+	
+	/* number of not render node\surface in not render node\not render surface but dont in not render node */
+	int cnt_not_render_node_ = 0;
+	int cnt_not_render_node_surface_ = 0;
+	int cnt_not_render_surfaces_ = 0;
 };
