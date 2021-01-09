@@ -5,12 +5,13 @@
 #include"Pyramid.h"
 #include"Model.h"
 #include"Octree.h"
+#include"ScanLine.h"
 #include<string>
-
+#include<ctime>
 class Scene
 {
 public:
-	// 输入参数
+	
 	Scene(std::string model_path, glm::vec3 camera_pos, glm::vec3 light_pos, unsigned int scr_width, unsigned int scr_height, unsigned int scr_depth = 720, int mode = 0) {
 		model_path_ = model_path;
 		camera_pos_ = camera_pos;
@@ -21,7 +22,7 @@ public:
 		mode_ = mode;
 	};
 	~Scene() {};
-	// 初始化
+	/* init */
 	void init() {
 
 		std::cout << "HINT::Scene init." << std::endl;
@@ -40,25 +41,37 @@ public:
 		model_.setLightPos(light_pos_);
 		model_.init();
 		
-		// init pyramid
-		pyramid_.setScrWidth(scr_width_);
-		pyramid_.setScrHeight(scr_height_);
-		pyramid_.init();
+		
 		
 		// 简单模式
 		if (mode_==0) {
-		
+			// init pyramid
+			pyramid_.setScrWidth(scr_width_);
+			pyramid_.setScrHeight(scr_height_);
+			pyramid_.init();
 		}
-		else {
+		else if(mode_==1){
 		// 完整模式
+			// init pyramid
+			pyramid_.setScrWidth(scr_width_);
+			pyramid_.setScrHeight(scr_height_);
+			pyramid_.init();
+
 			octree_ = new Octree(model_, scr_width_, scr_height_, scr_depth_);
 			octree_->init();
 			octree_root_ = octree_->getOctreeRoot();
 		}
+		else {
+			
+			// init z_buffer_;
+			scan_liner_ = new ScanLine(scr_width_, scr_height_, &model_, color_data_);
+			scan_liner_->init();
+			
+		}
 	};
 	// beginRender
 	void beginRender() {
-	
+		clock_t t = clock();
 		if (mode_ == 0) {
 			std::cout << "HINT::Scene Simple begin beginRender." << std::endl;
 			for (unsigned int i = 0; i < model_.sur_faces_.size(); i++) {
@@ -67,7 +80,7 @@ public:
 			std::cout << "The number of all surfaces is:" << model_.getSurfacesNum() << std::endl;
 			std::cout << "The number of dont render surfaces is:" << cnt_not_render_surfaces_sim_ << std::endl;
 		}
-		else {
+		else if (mode_ == 1) {
 
 			std::cout << "HINT::Scene Complete beginRender." << std::endl;
 			
@@ -78,6 +91,12 @@ public:
 			std::cout << "The number of dont render surface is:" << cnt_not_render_surfaces_com_ << std::endl;
 			std::cout << "The number of dont render all surfaces is:" << cnt_not_render_node_surface_com_ + cnt_not_render_surfaces_com_ << std::endl;
 		}
+		else {	// scan line z buffer
+			//scan_liner_->debugPolygon();
+			//scan_liner_->debugEdge();
+			scan_liner_->beginRender();
+		}
+		std::cout << "HINT::Scene Render scene cost :" << float(clock() - t) << "ms." << std::endl;
 	};
 	GLubyte* getColorData() {
 		return color_data_;
@@ -193,6 +212,8 @@ private:
 			}
 		}
 	}
+	
+
 
 	/* Set pixel color with mean color of previous and current color value*/
 	void meanSetPixel(unsigned int x, unsigned int y, float color) {
@@ -261,16 +282,16 @@ private:
 	/* pyramid */
 	Pyramid pyramid_;
 	
+	ScanLine* scan_liner_;
 	/* octree */
 	Octree* octree_;
 	
 	/* octree root */
 	OctreeNode* octree_root_;
-	
 
 	/* color data of windows */
 	GLubyte* color_data_;
-
+	
 	/* model file path */
 	std::string model_path_;
 

@@ -11,7 +11,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include/)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (HierarchyZBufferSimple "main.cpp" "src/Surface.h" "src/Scene.h")
+add_executable (HierarchyZBufferSimple "main.cpp")
 
 target_link_libraries(HierarchyZBufferSimple PUBLIC ${PROJECT_SOURCE_DIR}/lib/freeglutd.lib ${PROJECT_SOURCE_DIR}/lib/assimp-vc142-mtd.lib)
 

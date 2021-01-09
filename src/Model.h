@@ -8,6 +8,7 @@
 #include<sstream>
 #include<vector>
 #include<float.h>
+#include<ctime>
 class Model
 {
 public:
@@ -56,8 +57,8 @@ public:
 		for (int i = 0; i < size; i++) {
 #pragma omp critical
 			{
-			ret_max_x = std::max(ret_max_x, points_[sur_faces_[index].indices[i]].position.x);
-			ret_min_x = std::min(ret_min_x, points_[sur_faces_[index].indices[i]].position.x);
+				ret_max_x = std::max(ret_max_x, points_[sur_faces_[index].indices[i]].position.x);
+				ret_min_x = std::min(ret_min_x, points_[sur_faces_[index].indices[i]].position.x);
 			}
 		}
 
@@ -76,8 +77,8 @@ public:
 		for (int i = 0; i < size; i++) {
 #pragma omp critical
 			{
-			ret_max_y = std::max(ret_max_y, points_[sur_faces_[index].indices[i]].position.y);
-			ret_min_y = std::min(ret_min_y, points_[sur_faces_[index].indices[i]].position.y);
+				ret_max_y = std::max(ret_max_y, points_[sur_faces_[index].indices[i]].position.y);
+				ret_min_y = std::min(ret_min_y, points_[sur_faces_[index].indices[i]].position.y);
 			}
 		}
 		return std::pair<float, float>(ret_min_y, ret_max_y);
@@ -134,6 +135,14 @@ public:
 	std::vector<glm::vec3 > normals_;
 
 	std::vector<float> color_;
+
+	float max_x_ = -FLT_MAX;
+	float max_y_ = -FLT_MAX;
+	float max_z_ = -FLT_MAX;
+	float min_x_ = FLT_MAX;
+	float min_y_ = FLT_MAX;
+	float min_z_ = FLT_MAX;
+
 private:
 	void initCameraLightPos() {
 		std::cout << "HINT::Model initial camera and light position." << std::endl;
@@ -155,7 +164,9 @@ private:
 	};
 
 	void loadModel() {
+
 		std::cout << "HINT::Model load model." << std::endl;
+		clock_t t = clock();
 
 		points_.clear();
 		sur_faces_.clear();
@@ -288,14 +299,19 @@ private:
 					}
 
 					glm::vec3 normal(0.0f, 0.0f, 0.0f);
-					if (f.nor_indices.empty()) {
-						glm::vec3 p1(points_[f.indices[0]].position.x, points_[f.indices[0]].position.y, points_[f.indices[0]].position.z);
-						glm::vec3 p2(points_[f.indices[1]].position.x, points_[f.indices[1]].position.y, points_[f.indices[1]].position.z);
-						glm::vec3 p3(points_[f.indices[2]].position.x, points_[f.indices[2]].position.y, points_[f.indices[2]].position.z);
 
-						glm::vec3 v1 = p2 - p1;
-						glm::vec3 v2 = p3 - p2;
-						normal = glm::normalize(glm::cross(v1, v2));
+					glm::vec3 real_nor(0.0f, 0.0f, 0.0f);
+
+					glm::vec3 p1(points_[f.indices[0]].position.x, points_[f.indices[0]].position.y, points_[f.indices[0]].position.z);
+					glm::vec3 p2(points_[f.indices[1]].position.x, points_[f.indices[1]].position.y, points_[f.indices[1]].position.z);
+					glm::vec3 p3(points_[f.indices[2]].position.x, points_[f.indices[2]].position.y, points_[f.indices[2]].position.z);
+
+					glm::vec3 v1 = p2 - p1;
+					glm::vec3 v2 = p3 - p2;
+					real_nor = glm::normalize(glm::cross(v1, v2));
+
+					if (f.nor_indices.empty()) {
+						normal = real_nor;
 					}
 					else {
 						glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
@@ -325,6 +341,8 @@ private:
 							// diffuse add ambient
 							c = std::min((float)std::pow(cos_alpha, 2) + 0.1f, 1.0f);
 						}
+
+						f.normal_ = real_nor;
 						sur_faces_.push_back(f);
 						color_.push_back(c);
 					}
@@ -371,6 +389,7 @@ private:
 				}
 			}
 		}
+		std::cout << "HINT::Model Load model cost :" << float(clock() - t) << "ms." << std::endl;
 	}
 
 	void scaleModel() {
@@ -378,6 +397,8 @@ private:
 		std::cout << "HINT::Model scale model." << std::endl;
 
 		initMinMaxXYZ();
+
+		std::cout << "before scale, min_z_:" << min_z_ << "max_z_:" << max_z_ << std::endl;
 
 		// 只需要考虑x,y不需要考虑z的平移
 		float scale = -1.0f;
@@ -391,9 +412,13 @@ private:
 				// x,y放缩再平移
 				points_[i].position.x = points_[i].position.x * scale - (min_x_ * scale + 1.0f);
 				points_[i].position.y = points_[i].position.y * scale - ((max_y_ + min_y_) / 2.0f) * scale;
-				// z只放缩 再平移(平移到(-x, 0))
-				/*points_[i].position.z = points_[i].position.z * scale;
-				points_[i].position.z -= max_z;*/
+				//// z只放缩 再平移(平移到(-x, 0))
+				points_[i].position.z = points_[i].position.z * scale;
+				points_[i].position.z -= (max_z_ * scale);
+				if (points_[i].position.z >= 0.0f) {
+					points_[i].position.z = 0.0f;
+				}
+
 			}
 		}
 		else {
@@ -404,12 +429,17 @@ private:
 				// x,y放缩再平移
 				points_[i].position.x = points_[i].position.x * scale - (max_x_ + min_x_) / 2.0f * scale;
 				points_[i].position.y = points_[i].position.y * scale - (min_y_ * scale + 1.0f);
-				// z放缩 再平移
-				// z放缩是为了不变形，z其实可以不用放缩
-				/*points_[i].position.z = points_[i].position.z * scale;
-				points_[i].position.z -= max_z;*/
+				//// z只放缩 再平移(平移到(-x, 0))
+				points_[i].position.z = points_[i].position.z * scale;
+				points_[i].position.z -= (max_z_ * scale);
+				if (points_[i].position.z >= 0.0f) {
+					points_[i].position.z = 0.0f;
+				}
 			}
 		}
+		initMinMaxXYZ();
+		std::cout << "after scale, min_z_:" << min_z_ << "max_z_:" << max_z_ << std::endl;
+
 	};
 
 	std::string getNextStr(std::string& str, unsigned int& index) {
@@ -459,12 +489,7 @@ private:
 
 	int num_surfaces_ = 0;
 
-	float max_x_ = -FLT_MAX;
-	float max_y_ = -FLT_MAX;
-	float max_z_ = -FLT_MAX;
-	float min_x_ = FLT_MAX;
-	float min_y_ = FLT_MAX;
-	float min_z_ = FLT_MAX;
+
 
 	glm::vec3 light_pos_ = glm::vec3(-1.0f, 1.0f, 1.0f);	// 光源的位置，用来设置表面颜色。
 	glm::vec3 camera_pos_ = glm::vec3(0.0f, 0.0f, 1.0f);

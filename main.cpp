@@ -13,12 +13,12 @@
 const unsigned int SCR_WIDTH = 720;
 const unsigned int SCR_HEIGHT = 720;
 const unsigned int SCR_DEPTH = 720;
-std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\house.obj";
+std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\al.obj";
 
 GLubyte* z_buffer_data;
 
 glm::vec3 lightPos = {-0.8f, 0.5f, 1.0f};
-glm::vec3 cameraPos = {-1.0f, 0.5f, 1.0f};
+glm::vec3 cameraPos = { 0.0f,0.0f, 1.0f };
 
 void init(void);
 
@@ -27,15 +27,15 @@ void reshape(int w, int h);
 void keyBorad(unsigned char key, int x, int y);
 
 int main(int argc, char ** argv) {
-
 	// 参数窗口 wdth,height,model path
-	Scene scene(model_path, cameraPos, lightPos, SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, 1);
+	Scene scene(model_path, cameraPos, lightPos, SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, 3);
 	
 	scene.init();
 	
 	scene.beginRender();
 
-	z_buffer_data = scene.getColorData();	
+	z_buffer_data = scene.getColorData();
+
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowSize(SCR_WIDTH, SCR_HEIGHT);
