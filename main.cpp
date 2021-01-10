@@ -5,20 +5,20 @@
 #include"Point.h"
 #include"Model.h"
 #include"tool\globalFunction.cpp"
-
 #include<iostream>
 #include<string>
 #include<stdlib.h>
 
-const unsigned int SCR_WIDTH = 720;
-const unsigned int SCR_HEIGHT = 720;
-const unsigned int SCR_DEPTH = 720;
-std::string model_path = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\al.obj";
+unsigned int SCR_WIDTH = 720;
+unsigned int SCR_HEIGHT = 720;
+unsigned int SCR_DEPTH = 720;
 
-GLubyte* z_buffer_data;
+std::string MODEL_PATH = "E:\\VisualStudioProject\\HierarchyZBufferSimple\\resources\\bunny.obj";
 
-glm::vec3 lightPos = {-0.8f, 0.5f, 1.0f};
-glm::vec3 cameraPos = { 0.0f,0.0f, 1.0f };
+GLubyte* COLOR_DATA = nullptr;
+
+const glm::vec3 LIGHT_POS = {-0.8f, 0.5f, 1.0f};
+const glm::vec3 CAMERA_POS = { 0.0f,0.0f, 1.0f };
 
 void init(void);
 
@@ -28,13 +28,13 @@ void keyBorad(unsigned char key, int x, int y);
 
 int main(int argc, char ** argv) {
 	// 参数窗口 wdth,height,model path
-	Scene scene(model_path, cameraPos, lightPos, SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, 3);
+	Scene scene(MODEL_PATH, CAMERA_POS, LIGHT_POS, SCR_WIDTH, SCR_HEIGHT, SCR_DEPTH, 2);
 	
 	scene.init();
 	
 	scene.beginRender();
 
-	z_buffer_data = scene.getColorData();
+	COLOR_DATA = scene.getColorData();
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -62,13 +62,8 @@ void display() {
 	// 设置绘制起点
 	glRasterPos2i(0, 0);
 
-
-
 	glDrawPixels(SCR_WIDTH, SCR_HEIGHT, GL_RGB,
-		GL_UNSIGNED_BYTE, z_buffer_data);
-	/*
-	在这里加上显示z buffer color的代码
-	*/
+		GL_UNSIGNED_BYTE, COLOR_DATA);
 
 	glFlush();
 }
@@ -83,13 +78,5 @@ void reshape(int w, int h) {
 }
 
 void keyBorad(unsigned char key, int x, int y) {
-	
-	switch (key) {
-	case 'a':
-		break;
-	default:
-		break;
-	}
-
 	glutPostRedisplay();
 }

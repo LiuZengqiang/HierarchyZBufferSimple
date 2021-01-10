@@ -256,6 +256,11 @@ private:
 		else {	// 如果在一个小cube 中
 			// 如果node已经有child了
 			// 直接加到对应的child中去
+			if (node == nullptr) {
+				std::cout << "ERROR::Octree::insertSur The node is nullptr." << std::endl;
+				std::cout << "\t surface index:" << surface_index << std::endl;
+				exit(0);
+			}
 			if (node->hasChild) {
 
 				insertSur(node->childern[id_1], surface_index);

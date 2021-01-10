@@ -7,19 +7,37 @@
 #define Epsilon 0.00001f
 #define Pi 3.14159265359
 
+extern unsigned int SCR_WIDTH;
+extern unsigned int SCR_HEIGHT;
+extern unsigned int SCR_DEPTH;
+
 namespace global {
+	/* transform coordinate value(float) into pixel coordinate value(unsigned int)*/
+	inline int coord2PixelY(float f) {
+		int ret = (int)std::round((1 + f) / 2.0f * (SCR_HEIGHT - 1));
+		if (ret >= (int)SCR_HEIGHT) {
+			std::cout << "ERROR::golbal::coord2PixelY Y is out of range [0, SCR_HEIGHT), coord:" << f << " pixel:" << ret << std::endl;
+			exit(0);
+		}
+		return ret;
+	}
+	inline int coord2PixelX(float f) {
+		int ret = (int)std::round((1 + f) / 2.0f * (SCR_WIDTH - 1));
+		if (ret >= (int)SCR_WIDTH) {
+			std::cout << "ERROR::golbal::coord2PixelX X is out of range [0, SCR_WIDTH), coord:" << f << " pixel:" << ret << std::endl;
+			exit(0);
+		}
+		return ret;
+	}
 	
-	// float 类型是否相等
-	bool floatEqual(const float& val_1, const float& val_2) {
+	inline bool floatEqual(const float& val_1, const float& val_2) {
 		return std::abs(val_1 - val_2) < Epsilon;
 	}
 	
-	// double 类型是否相等
 	bool doubleEqual(const double& val_1, const double& val_2) {
 		return std::abs(val_1 - val_2) < Epsilon;
 	}
 	
-	// vec3 类型是否相等
 	bool vec3Equal(const glm::vec3& val_1, const glm::vec3& val_2) {
 		return floatEqual(val_1.x, val_2.x) && floatEqual(val_1.y, val_2.y) && floatEqual(val_1.z, val_2.z);
 	}

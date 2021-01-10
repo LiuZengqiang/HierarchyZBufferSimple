@@ -7,9 +7,6 @@ struct Surface
 {
 	std::vector<int > indices;
 	std::vector<int > nor_indices;
-	
-	glm::vec3 normal_ = {0.0f, 0.0f, 0.0f};
-
 	Surface() {
 		indices.clear();
 		nor_indices.clear();

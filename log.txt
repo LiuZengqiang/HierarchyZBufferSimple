@@ -72,3 +72,6 @@ todo:
 	重新组织代码:Scene->octree
 					->model
 					->pyramid
+20210110:
+todo:
+	组织代码，使程序加速

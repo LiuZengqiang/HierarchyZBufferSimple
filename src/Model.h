@@ -268,7 +268,7 @@ private:
 							k++;
 						}
 
-						int n_index = std::atoi(next_word.substr(j, k - j).c_str());
+						int n_index = std::atoi(next_word.substr(j, (size_t)k - j).c_str());
 						nor_indices.push_back(n_index);
 					}
 
@@ -300,38 +300,32 @@ private:
 
 					glm::vec3 normal(0.0f, 0.0f, 0.0f);
 
-					glm::vec3 real_nor(0.0f, 0.0f, 0.0f);
-
-					glm::vec3 p1(points_[f.indices[0]].position.x, points_[f.indices[0]].position.y, points_[f.indices[0]].position.z);
-					glm::vec3 p2(points_[f.indices[1]].position.x, points_[f.indices[1]].position.y, points_[f.indices[1]].position.z);
-					glm::vec3 p3(points_[f.indices[2]].position.x, points_[f.indices[2]].position.y, points_[f.indices[2]].position.z);
-
-					glm::vec3 v1 = p2 - p1;
-					glm::vec3 v2 = p3 - p2;
-					real_nor = glm::normalize(glm::cross(v1, v2));
-
 					if (f.nor_indices.empty()) {
-						normal = real_nor;
+						glm::vec3 p1 = points_[f.indices[0]].position;
+						glm::vec3 p2 = points_[f.indices[1]].position;
+						glm::vec3 p3 = points_[f.indices[2]].position;
+
+						glm::vec3 v1 = p2 - p1;
+						glm::vec3 v2 = p3 - p1;
+						normal = glm::normalize(glm::cross(v1, v2));
 					}
 					else {
-						glm::vec3 temp_nor(0.0f, 0.0f, 0.0f);
-						for (unsigned int j = 0; j < f.nor_indices.size(); j++) {
-							temp_nor += normals_[f.nor_indices[j]];
-						}
-						temp_nor.x = temp_nor.x / f.nor_indices.size();
-						temp_nor.y = temp_nor.y / f.nor_indices.size();
-						temp_nor.z = temp_nor.z / f.nor_indices.size();
 
-						normal = glm::normalize(temp_nor);
+						for (unsigned int j = 0; j < f.nor_indices.size(); j++) {
+							normal += normals_[f.nor_indices[j]];
+						}
+						normal.x = normal.x / f.nor_indices.size();
+						normal.y = normal.y / f.nor_indices.size();
+						normal.z = normal.z / f.nor_indices.size();
+						normal = glm::normalize(normal);
 					}
 
 					float c = 0.0f;
 					// negative surface
-					if (normal.z < 0.0) {
+					if (normal.z < 0.0f) {
 						;
 					}
 					else {
-
 						double cos_alpha = glm::dot(normal, glm::normalize(light_pos_));
 						if (cos_alpha < 0.0f) {
 							// diffuse add ambient
@@ -341,8 +335,6 @@ private:
 							// diffuse add ambient
 							c = std::min((float)std::pow(cos_alpha, 2) + 0.1f, 1.0f);
 						}
-
-						f.normal_ = real_nor;
 						sur_faces_.push_back(f);
 						color_.push_back(c);
 					}
@@ -392,6 +384,9 @@ private:
 		std::cout << "HINT::Model Load model cost :" << float(clock() - t) << "ms." << std::endl;
 	}
 
+
+	
+	
 	void scaleModel() {
 
 		std::cout << "HINT::Model scale model." << std::endl;

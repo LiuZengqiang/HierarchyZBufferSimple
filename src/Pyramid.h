@@ -49,7 +49,7 @@ public:
 	void init() {
 		std::cout << "HINT::Pyramid initial pyramid." << std::endl;
 		z_buffer_node_.clear();
-		std::vector<PyramidNode*> z((int)scr_width_ * scr_height_, nullptr);
+		std::vector<PyramidNode*> z((size_t)scr_width_ * scr_height_, nullptr);
 
 		z_buffer_node_.assign(z.begin(), z.end());
 
@@ -67,7 +67,7 @@ public:
 	/// <param name="max_z">待测试的多边形的 最大z 坐标值</param>
 	/// <param name="index">待测试的面的index，用于debug的参数</param>
 	/// <returns>true该多边形可以绘制/false该多边形显然不需要绘制</returns>
-	bool isRender(unsigned int p_x_l, unsigned int p_x_r, unsigned int p_y_b, unsigned int p_y_t, float max_z, std::string index) {
+	bool isRender(unsigned int p_x_l, unsigned int p_x_r, unsigned int p_y_b, unsigned int p_y_t, float max_z) {
 
 		//std::cout << "surface " << index << " " << " max_z:" << max_z << std::endl;
 
@@ -78,7 +78,7 @@ public:
 
 		if (p_x_r > scr_width_ || p_x_l < 0 || p_y_b < 0 || p_y_t > scr_height_) {
 
-			std::cout << "ERROR::Pyramid::isRender surface " << index << "(" << p_x_l << " - " << p_x_r << ", " << p_y_b << " - " << p_y_t << ")" << "is out of range(0, 0) - (" << scr_width_ << ", " << scr_height_ << ")" << std::endl;
+			std::cout << "ERROR::Pyramid::isRender surface (" << p_x_l << " - " << p_x_r << ", " << p_y_b << " - " << p_y_t << ")" << "is out of range(0, 0) - (" << scr_width_ << ", " << scr_height_ << ")" << std::endl;
 			exit(0);
 			return false;
 		}
